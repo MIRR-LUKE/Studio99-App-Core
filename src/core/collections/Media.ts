@@ -11,11 +11,14 @@ import {
   createCollectionAuditAfterChange,
   createCollectionAuditAfterDelete,
 } from '../hooks/audit'
+import { applyMediaStoragePolicy } from '../hooks/mediaPolicy'
 
 export const Media: CollectionConfig = {
   slug: 'media',
   timestamps: true,
-  upload: true,
+  upload: {
+    mimeTypes: ['image/*', 'application/pdf', 'audio/*', 'video/*'],
+  },
   admin: {
     useAsTitle: 'filename',
   },
@@ -26,6 +29,7 @@ export const Media: CollectionConfig = {
     delete: mediaDeleteAccess,
   },
   hooks: {
+    beforeChange: [applyMediaStoragePolicy],
     afterChange: [createCollectionAuditAfterChange('media')],
     afterDelete: [createCollectionAuditAfterDelete('media')],
   },
@@ -52,9 +56,51 @@ export const Media: CollectionConfig = {
       ],
     },
     {
+      name: 'objectKey',
+      type: 'text',
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      name: 'deliveryUrl',
+      type: 'text',
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
       name: 'tags',
       type: 'text',
       hasMany: true,
+    },
+    {
+      name: 'purpose',
+      type: 'select',
+      defaultValue: 'asset',
+      options: [
+        { label: 'Asset', value: 'asset' },
+        { label: 'Export', value: 'export' },
+        { label: 'Backup', value: 'backup' },
+      ],
+    },
+    {
+      name: 'retentionState',
+      type: 'select',
+      defaultValue: 'active',
+      options: [
+        { label: 'Active', value: 'active' },
+        { label: 'Scheduled for purge', value: 'scheduled_for_purge' },
+        { label: 'Purged', value: 'purged' },
+      ],
+    },
+    {
+      name: 'deletedAt',
+      type: 'date',
+    },
+    {
+      name: 'retentionUntil',
+      type: 'date',
     },
     {
       name: 'uploadedBy',

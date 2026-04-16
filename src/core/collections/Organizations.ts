@@ -65,6 +65,67 @@ export const Organizations: CollectionConfig = {
       relationTo: 'users',
     },
     {
+      name: 'planKey',
+      type: 'text',
+    },
+    {
+      name: 'billingStatus',
+      type: 'select',
+      defaultValue: 'none',
+      options: [
+        { label: 'None', value: 'none' },
+        { label: 'Trialing', value: 'trialing' },
+        { label: 'Active', value: 'active' },
+        { label: 'Grace', value: 'grace' },
+        { label: 'Past due', value: 'past_due' },
+        { label: 'Unpaid', value: 'unpaid' },
+        { label: 'Canceled', value: 'canceled' },
+        { label: 'Incomplete', value: 'incomplete' },
+      ],
+    },
+    {
+      name: 'gracePeriodEndsAt',
+      type: 'date',
+    },
+    {
+      name: 'seatLimit',
+      type: 'number',
+    },
+    {
+      name: 'billingEntitlements',
+      type: 'json',
+    },
+    {
+      name: 'notificationDefaults',
+      type: 'group',
+      fields: [
+        {
+          name: 'billing',
+          type: 'group',
+          fields: [
+            { name: 'email', type: 'checkbox', defaultValue: true },
+            { name: 'inApp', type: 'checkbox', defaultValue: true },
+          ],
+        },
+        {
+          name: 'product',
+          type: 'group',
+          fields: [
+            { name: 'email', type: 'checkbox', defaultValue: true },
+            { name: 'inApp', type: 'checkbox', defaultValue: true },
+          ],
+        },
+        {
+          name: 'security',
+          type: 'group',
+          fields: [
+            { name: 'email', type: 'checkbox', defaultValue: true },
+            { name: 'inApp', type: 'checkbox', defaultValue: true },
+          ],
+        },
+      ],
+    },
+    {
       name: 'metadata',
       type: 'json',
     },

@@ -1,6 +1,12 @@
 import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
 import type { CollectionConfig } from 'payload'
 
+import {
+  userCreateAccess,
+  userDeleteAccess,
+  userReadAccess,
+  userUpdateAccess,
+} from '../access'
 import { env } from '../../lib/env'
 import { ORGANIZATION_ROLE_OPTIONS } from '../utils/roles'
 
@@ -26,6 +32,12 @@ export const Users: CollectionConfig = {
   timestamps: true,
   admin: {
     useAsTitle: 'email',
+  },
+  access: {
+    read: userReadAccess,
+    create: userCreateAccess,
+    update: userUpdateAccess,
+    delete: userDeleteAccess,
   },
   fields: [
     {
@@ -74,6 +86,10 @@ export const Users: CollectionConfig = {
       name: 'platformRole',
       type: 'select',
       defaultValue: 'platform_readonly',
+      access: {
+        read: ({ req }) => Boolean(req.user?.platformRole),
+        update: ({ req }) => ['platform_owner', 'platform_admin'].includes(String(req.user?.platformRole)),
+      },
       options: [
         { label: 'Platform Owner', value: 'platform_owner' },
         { label: 'Platform Admin', value: 'platform_admin' },
@@ -110,6 +126,36 @@ export const Users: CollectionConfig = {
         position: 'sidebar',
         readOnly: true,
       },
+    },
+    {
+      name: 'notificationSettings',
+      type: 'group',
+      fields: [
+        {
+          name: 'billing',
+          type: 'group',
+          fields: [
+            { name: 'email', type: 'checkbox', defaultValue: true },
+            { name: 'inApp', type: 'checkbox', defaultValue: true },
+          ],
+        },
+        {
+          name: 'product',
+          type: 'group',
+          fields: [
+            { name: 'email', type: 'checkbox', defaultValue: true },
+            { name: 'inApp', type: 'checkbox', defaultValue: true },
+          ],
+        },
+        {
+          name: 'security',
+          type: 'group',
+          fields: [
+            { name: 'email', type: 'checkbox', defaultValue: true },
+            { name: 'inApp', type: 'checkbox', defaultValue: true },
+          ],
+        },
+      ],
     },
   ]
 }

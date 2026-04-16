@@ -1,6 +1,7 @@
 import type { Access, AccessArgs, Where } from 'payload'
 
 import type { Invite } from '../../../payload-types'
+import { canProvisionOrganizationSeat, resolveManagedOrganizationId } from './billing'
 import { createSystemLocalApi } from '../server/localApi'
 import { compactDocumentIds, resolveDocumentId } from '../utils/ids'
 import { canManageOrganizationMembership } from './organization'
@@ -80,12 +81,17 @@ export const inviteCreateAccess: Access = async ({ req, data }) => {
     return true
   }
 
-  const organizationId = resolveDocumentId((data as Partial<InviteDoc> | undefined)?.organization)
+  const organizationId = resolveManagedOrganizationId(data)
   if (organizationId === null) {
     return false
   }
 
-  return canManageOrganizationMembership(req, organizationId)
+  const canManage = await canManageOrganizationMembership(req, organizationId)
+  if (!canManage) {
+    return false
+  }
+
+  return canProvisionOrganizationSeat(req, organizationId)
 }
 
 export const inviteUpdateAccess: Access = async ({ req, id, data }) => {

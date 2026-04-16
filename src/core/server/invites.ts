@@ -3,6 +3,7 @@ import type { PayloadRequest } from 'payload'
 
 import type { Invite, Membership } from '../../../payload-types'
 import { canManageOrganizationMembership } from '../access'
+import { canProvisionOrganizationSeat } from '../access/billing'
 import { env } from '../../lib/env'
 import { resolveDocumentId } from '../utils/ids'
 import type { OrganizationRole } from '../utils/roles'
@@ -177,6 +178,10 @@ export const acceptInvite = async ({ req, token }: { req: PayloadRequest; token:
   const organizationId = resolveDocumentId(invite.organization)
   if (organizationId === null) {
     throw new Error('Invite organization is invalid.')
+  }
+
+  if (!(await canProvisionOrganizationSeat(req, organizationId))) {
+    throw new Error('This organization is over its current seat limit.')
   }
 
   const existingMemberships = await systemApi.find({

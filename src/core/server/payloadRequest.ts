@@ -1,12 +1,21 @@
 import config from '@payload-config'
 import { createPayloadRequest, getPayload } from 'payload'
 
-export const createAuthenticatedPayloadRequest = async (request: Request) => {
+export const createPayloadRequestContext = async (request: Request) => {
   const payload = await getPayload({ config })
   const req = await createPayloadRequest({
     config,
     request,
   })
+
+  return {
+    payload,
+    req,
+  }
+}
+
+export const createAuthenticatedPayloadRequest = async (request: Request) => {
+  const { payload, req } = await createPayloadRequestContext(request)
 
   const authResult = await payload.auth({
     canSetHeaders: false,

@@ -9,6 +9,21 @@ export const PLATFORM_ROLES = [
 
 export type PlatformRole = (typeof PLATFORM_ROLES)[number]
 
+export const PLATFORM_ROLE_CAPABILITIES: Record<PlatformRole, string[]> = {
+  platform_admin: ['platform.read', 'platform.manage', 'ops.access', 'billing.manage'],
+  platform_billing: ['platform.read', 'billing.manage'],
+  platform_operator: ['platform.read', 'ops.access'],
+  platform_owner: [
+    'platform.read',
+    'platform.manage',
+    'ops.access',
+    'billing.manage',
+    'dangerous.write',
+  ],
+  platform_readonly: ['platform.read'],
+  platform_support: ['platform.read', 'ops.access', 'support.manage'],
+}
+
 export const PLATFORM_READ_ROLES: PlatformRole[] = [...PLATFORM_ROLES]
 
 export const PLATFORM_MANAGE_ROLES: PlatformRole[] = [
@@ -53,6 +68,21 @@ export const ORGANIZATION_ROLE_RANK: Record<OrganizationRole, number> = {
   editor: 3,
   member: 4,
   viewer: 5,
+}
+
+export const ORGANIZATION_ROLE_CAPABILITIES: Record<OrganizationRole, string[]> = {
+  editor: ['organization.read', 'content.write'],
+  manager: ['organization.read', 'content.write', 'team.manage'],
+  member: ['organization.read'],
+  org_admin: ['organization.read', 'content.write', 'team.manage', 'billing.read'],
+  org_owner: [
+    'organization.read',
+    'content.write',
+    'team.manage',
+    'billing.read',
+    'organization.delete',
+  ],
+  viewer: ['organization.read'],
 }
 
 export const isPlatformRole = (role: unknown): role is PlatformRole =>

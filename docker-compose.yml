@@ -45,7 +45,7 @@ services:
       - --api-key
       - ${STRIPE_SECRET_KEY}
       - --forward-to
-      - ${STRIPE_WEBHOOK_FORWARD_TO:-http://host.docker.internal:3000/api/stripe/webhook}
+      - ${STRIPE_WEBHOOK_FORWARD_TO:-http://host.docker.internal:3000/api/core/billing/webhook}
     extra_hosts:
       - host.docker.internal:host-gateway
 

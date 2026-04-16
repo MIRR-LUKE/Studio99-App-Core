@@ -6,6 +6,17 @@ const storageProviders = ['local', 's3'] as const
 type StorageProvider = (typeof storageProviders)[number]
 const authCookieSameSiteValues = ['Lax', 'None', 'Strict'] as const
 type AuthCookieSameSite = (typeof authCookieSameSiteValues)[number]
+const billingStates = [
+  'none',
+  'trialing',
+  'active',
+  'grace',
+  'past_due',
+  'unpaid',
+  'canceled',
+  'incomplete',
+] as const
+type BillingState = (typeof billingStates)[number]
 
 function requireEnv(key: RequiredEnvKey): string {
   const value = process.env[key]?.trim()
@@ -122,11 +133,22 @@ export const env = {
     enabled: stripeEnabled,
     secretKey: requireWhen(stripeEnabled, 'STRIPE_SECRET_KEY'),
     webhookSecret: requireWhen(stripeEnabled, 'STRIPE_WEBHOOK_SECRET'),
+    apiVersion: optionalEnv('STRIPE_API_VERSION', '2026-02-25.clover'),
+    checkoutCancelUrl: optionalEnv(
+      'STRIPE_CHECKOUT_CANCEL_URL',
+      `${requireEnv('NEXT_PUBLIC_SERVER_URL')}/app/billing?status=cancelled`,
+    ),
+    checkoutSuccessUrl: optionalEnv(
+      'STRIPE_CHECKOUT_SUCCESS_URL',
+      `${requireEnv('NEXT_PUBLIC_SERVER_URL')}/app/billing?status=success`,
+    ),
+    portalConfigurationId: optionalEnv('STRIPE_PORTAL_CONFIGURATION_ID') || undefined,
+    publishableKey: optionalEnv('STRIPE_PUBLISHABLE_KEY'),
     priceId: optionalEnv('STRIPE_PRICE_ID'),
     productId: optionalEnv('STRIPE_PRODUCT_ID'),
     webhookForwardTo: optionalEnv(
       'STRIPE_WEBHOOK_FORWARD_TO',
-      'http://host.docker.internal:3000/api/stripe/webhook',
+      'http://host.docker.internal:3000/api/core/billing/webhook',
     ),
   },
   auth: {
@@ -140,5 +162,25 @@ export const env = {
     tokenExpirationSeconds: integerEnv('AUTH_TOKEN_EXPIRATION', 2 * 60 * 60),
     useSessions: booleanEnv('AUTH_USE_SESSIONS', true),
     verifyEmail: booleanEnv('AUTH_VERIFY_EMAIL', true),
+  },
+  jobs: {
+    autorun: booleanEnv('JOBS_AUTORUN', false),
+    autorunCron: optionalEnv('JOBS_AUTORUN_CRON', '* * * * *'),
+    runQueue: optionalEnv('JOBS_RUN_QUEUE', 'default'),
+  },
+  observability: {
+    logLevel: optionalEnv('LOG_LEVEL', 'info'),
+    serviceName: optionalEnv('SERVICE_NAME', 'studio99-app-core'),
+  },
+  recovery: {
+    backupRetentionDays: integerEnv('BACKUP_RETENTION_DAYS', 30),
+    exportRetentionDays: integerEnv('EXPORT_RETENTION_DAYS', 14),
+    mediaRetentionDays: integerEnv('MEDIA_RETENTION_DAYS', 30),
+    restoreDrillCadenceDays: integerEnv('RESTORE_DRILL_CADENCE_DAYS', 30),
+  },
+  billingDefaults: {
+    gracePeriodDays: integerEnv('BILLING_GRACE_PERIOD_DAYS', 7),
+    defaultCurrency: optionalEnv('BILLING_DEFAULT_CURRENCY', 'jpy'),
+    fallbackStatus: enumEnv<BillingState>('BILLING_FALLBACK_STATUS', billingStates, 'none'),
   },
 } as const

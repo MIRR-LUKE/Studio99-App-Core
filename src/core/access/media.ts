@@ -149,4 +149,4 @@ export const mediaUpdateAccess: Access = async ({ req, id, data }) => {
   return canManageOrganizationMembership(req, existingOrganizationId)
 }
 
-export const mediaDeleteAccess: Access = mediaUpdateAccess
+export const mediaDeleteAccess: Access = () => false

@@ -1,4 +1,5 @@
 import type { Membership } from '../../../payload-types'
+import { syncOrganizationSeatSnapshot } from '../billing/sync'
 import { createSystemLocalApi } from '../server/localApi'
 import { compactDocumentIds, documentIdKey, resolveDocumentId } from '../utils/ids'
 import { hasOrganizationRoleAtLeast } from '../utils/roles'
@@ -172,15 +173,28 @@ export const syncOrganizationOwnerOnMembershipChange = async ({
 }) => {
   await syncOrganizationOwner(req, doc)
   await syncMembershipUsers(req, [previousDoc, doc])
+  const currentOrganizationId = resolveDocumentId(doc.organization)
+
+  if (currentOrganizationId !== null) {
+    await syncOrganizationSeatSnapshot({
+      organizationId: currentOrganizationId,
+      req,
+    })
+  }
 
   if (!previousDoc) {
     return
   }
 
   const previousOrganizationId = resolveDocumentId(previousDoc.organization)
-  const currentOrganizationId = resolveDocumentId(doc.organization)
 
   if (previousOrganizationId === null || previousOrganizationId !== currentOrganizationId) {
+    if (previousOrganizationId !== null) {
+      await syncOrganizationSeatSnapshot({
+        organizationId: previousOrganizationId,
+        req,
+      })
+    }
     return
   }
 
@@ -200,6 +214,14 @@ export const syncOrganizationOwnerOnMembershipDelete = async ({
 }) => {
   await syncOrganizationOwner(req, doc)
   await syncMembershipUsers(req, [doc])
+  const organizationId = resolveDocumentId(doc.organization)
+
+  if (organizationId !== null) {
+    await syncOrganizationSeatSnapshot({
+      organizationId,
+      req,
+    })
+  }
 }
 
 export const stampMembershipJoinDate = (

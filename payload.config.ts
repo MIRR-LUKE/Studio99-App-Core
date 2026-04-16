@@ -7,12 +7,22 @@ import sharp from 'sharp'
 import { fileURLToPath } from 'node:url'
 
 import { AppSettings } from './src/core/globals/AppSettings'
+import { BillingSettings } from './src/core/globals/BillingSettings'
+import { EmailTemplates } from './src/core/globals/EmailTemplates'
+import { LegalTexts } from './src/core/globals/LegalTexts'
 import { OpsSettings } from './src/core/globals/OpsSettings'
 import { AuditLogs } from './src/core/collections/AuditLogs'
+import { BillingCustomers } from './src/core/collections/BillingCustomers'
+import { BillingEvents } from './src/core/collections/BillingEvents'
+import { BillingSubscriptions } from './src/core/collections/BillingSubscriptions'
+import { FeatureFlags } from './src/core/collections/FeatureFlags'
 import { Invites } from './src/core/collections/Invites'
 import { Media } from './src/core/collections/Media'
 import { Memberships } from './src/core/collections/Memberships'
+import { OperationalEvents } from './src/core/collections/OperationalEvents'
 import { Organizations } from './src/core/collections/Organizations'
+import { SupportNotes } from './src/core/collections/SupportNotes'
+import { coreJobsConfig } from './src/core/ops/jobs'
 import { Users } from './src/core/collections/Users'
 import { env } from './src/lib/env'
 
@@ -43,9 +53,29 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Organizations, Memberships, Invites, Media, AuditLogs],
-  globals: [AppSettings, OpsSettings],
+  collections: [
+    Users,
+    Organizations,
+    Memberships,
+    Invites,
+    Media,
+    AuditLogs,
+    FeatureFlags,
+    BillingCustomers,
+    BillingSubscriptions,
+    BillingEvents,
+    SupportNotes,
+    OperationalEvents,
+  ],
+  globals: [
+    AppSettings,
+    OpsSettings,
+    LegalTexts,
+    BillingSettings,
+    EmailTemplates,
+  ],
   editor: lexicalEditor(),
+  jobs: coreJobsConfig,
   secret: env.PAYLOAD_SECRET,
   serverURL: env.NEXT_PUBLIC_SERVER_URL,
   db: postgresAdapter({
@@ -82,6 +112,31 @@ export default buildConfig({
           useBaseFilter: true,
         },
         [Media.slug]: {
+          customTenantField: true,
+          useTenantAccess: false,
+          useBaseFilter: true,
+        },
+        [BillingCustomers.slug]: {
+          customTenantField: true,
+          useTenantAccess: false,
+          useBaseFilter: true,
+        },
+        [BillingSubscriptions.slug]: {
+          customTenantField: true,
+          useTenantAccess: false,
+          useBaseFilter: true,
+        },
+        [BillingEvents.slug]: {
+          customTenantField: true,
+          useTenantAccess: false,
+          useBaseFilter: true,
+        },
+        [SupportNotes.slug]: {
+          customTenantField: true,
+          useTenantAccess: false,
+          useBaseFilter: true,
+        },
+        [OperationalEvents.slug]: {
           customTenantField: true,
           useTenantAccess: false,
           useBaseFilter: true,
