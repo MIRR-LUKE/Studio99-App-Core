@@ -53,13 +53,13 @@ npm run dev
 
 - `http://localhost:3000/app`
 - `http://localhost:3000/admin`
-- `http://localhost:3000/ops`
+- `http://localhost:3000/console`
 
 ## 8. 新しい project を作る
 
 方法は 2 つあります。
 
-### `/ops` から作る
+### `/console/factory` から作る
 
 `Project Factory` で key / name / template を入れて作ります。
 

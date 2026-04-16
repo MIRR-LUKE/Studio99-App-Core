@@ -4,7 +4,7 @@
 
 ## 2つの使い方
 
-### 1. `/ops` から作る
+### 1. `/console/factory` から作る
 
 `Project Factory` を使います。
 
@@ -98,6 +98,8 @@ body:
 3. `/app/<projectKey>` を開く
 4. `/api/<projectKey>` が返るか確かめる
 5. project 固有の page / collection / API を足す
+
+`/console` 側では、作成した project の管理導線をここから辿れるようにします。
 
 ## 迷ったら
 

@@ -12,7 +12,7 @@ type FormState = {
 
 type SuccessState = {
   adminUrl: string
-  opsUrl: string
+  consoleUrl: string
 }
 
 const fieldStyle = {
@@ -60,6 +60,7 @@ export function BootstrapOwnerForm() {
 
       const result = (await response.json().catch(() => ({}))) as {
         adminUrl?: string
+        consoleUrl?: string
         error?: string
         opsUrl?: string
       }
@@ -70,7 +71,7 @@ export function BootstrapOwnerForm() {
 
       setSuccess({
         adminUrl: result.adminUrl ?? '/admin',
-        opsUrl: result.opsUrl ?? '/ops',
+        consoleUrl: result.consoleUrl ?? result.opsUrl ?? '/console',
       })
       setForm((current) => ({
         ...current,
@@ -148,10 +149,10 @@ export function BootstrapOwnerForm() {
           <p style={{ margin: '0 0 8px' }}>作成できました。次はここへ進めます。</p>
           <ul style={{ margin: 0, paddingLeft: '18px' }}>
             <li>
-              <a href={success.adminUrl}>{success.adminUrl}</a>
+              <a href={success.consoleUrl}>{success.consoleUrl}</a>
             </li>
             <li>
-              <a href={success.opsUrl}>{success.opsUrl}</a>
+              <a href={success.adminUrl}>{success.adminUrl}</a>
             </li>
           </ul>
         </div>

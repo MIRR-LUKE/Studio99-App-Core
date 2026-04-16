@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 import { BootstrapOwnerForm } from './bootstrap-owner-form'
 
 import { isOwnerBootstrapEnabled } from '@/core/ops/bootstrapOwner'
@@ -18,7 +20,9 @@ export default function BootstrapOwnerPage() {
       <ul style={{ lineHeight: 1.7, margin: '0 0 20px', paddingLeft: '20px' }}>
         <li>1回目の owner 作成にだけ使う</li>
         <li>token が間違っていると作れない</li>
-        <li>作成後は `/admin` と `/ops` に進む</li>
+        <li>
+          作成後は <Link href="/console">/console</Link> と <Link href="/admin">/admin</Link> に進む
+        </li>
       </ul>
       {isEnabled ? (
         <BootstrapOwnerForm />

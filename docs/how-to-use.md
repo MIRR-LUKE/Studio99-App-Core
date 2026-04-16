@@ -17,7 +17,7 @@ npm run dev
 - `http://localhost:3000/bootstrap/owner`
 - `http://localhost:3000/admin`
 - `http://localhost:3000/app`
-- `http://localhost:3000/ops`
+- `http://localhost:3000/console`
 
 ## 2. 最初の管理者を作る
 
@@ -29,14 +29,16 @@ npm run dev
 作成できたら次へ進みます。
 
 - `/admin` でデータと設定を見る
-- `/ops` で運用画面を見る
+- `/console` で表向きの管理画面を見る
+- `/console/factory` で新しい project を作る
+- `/console/ops` で運用画面を見る
 - `/app` で project 一覧を見る
 
 ## 3. 画面の役割を分ける
 
 ### `/admin`
 
-共通データと設定を触る場所です。
+生の Payload 管理画面です。裏口として残します。
 
 - users
 - organizations
@@ -46,6 +48,20 @@ npm run dev
 - globals
 - billing 関連 collection
 
+### `/console`
+
+Studio99 の表向きの統合管理画面です。
+
+- project
+- tenants
+- users
+- billing
+- media
+- settings
+- recovery
+- jobs
+- security
+
 ### `/app`
 
 アプリ本体の入口です。  
@@ -53,14 +69,16 @@ npm run dev
 
 ### `/ops`
 
-運用画面です。  
+内部運用の導線です。
 health、recovery、project factory、失敗対応の入口がまとまっています。
+
+表向きの project 作成は `/console/factory`、運用導線は `/console/ops` に寄せます。
 
 ## 4. 新しい project を作る
 
-### `/ops` から作る
+### `/console/factory` から作る
 
-`/ops` の `Project Factory` を使います。
+`/console/factory` の `Project Factory` を使います。
 
 1. project key を入れる
 2. 表示名を入れる

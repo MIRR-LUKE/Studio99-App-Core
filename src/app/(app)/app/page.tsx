@@ -14,7 +14,8 @@ export default async function AppPage() {
           <p style={{ margin: '0 0 12px' }}>Studio99 Application Core</p>
           <h1 style={{ margin: '0 0 14px' }}>この core からアプリを増やしていくための入口</h1>
           <p style={{ lineHeight: 1.7, margin: 0 }}>
-            ここは launchpad です。project を作る、既存 project に入る、管理画面へ移る、の3つをすぐできるようにしています。
+            ここは launchpad です。project を作る、既存 project に入る、表向きの管理画面である
+            <Link href="/console">/console</Link> に移る、の3つをすぐできるようにしています。
           </p>
         </header>
 
@@ -25,12 +26,15 @@ export default async function AppPage() {
               初回なら <Link href="/bootstrap/owner">/bootstrap/owner</Link> で最初の管理者を作る
             </li>
             <li>
-              <Link href="/admin">/admin</Link> で core の共通データを確認する
+              <Link href="/console">/console</Link> で表向きの管理画面に入る
             </li>
             <li>
-              <Link href="/ops">/ops</Link> の Project Factory から新しい project を生やす
+              裏口の <Link href="/admin">/admin</Link> で core の共通データを確認する
             </li>
-            <li>project 固有の page / collection / workflow を足していく</li>
+            <li>
+              必要なら内部運用として <Link href="/ops">/ops</Link> も使い、project 固有の page /
+              collection / workflow を足していく
+            </li>
           </ol>
         </section>
 
@@ -45,7 +49,9 @@ export default async function AppPage() {
               ))}
             </ul>
           ) : (
-            <p style={{ margin: 0 }}>まだ project はありません。`/ops` から最初の 1 本を作ってください。</p>
+            <p style={{ margin: 0 }}>
+              まだ project はありません。`/console` から最初の 1 本を作る流れにしていきます。
+            </p>
           )}
         </section>
 

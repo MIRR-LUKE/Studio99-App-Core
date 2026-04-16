@@ -6,8 +6,9 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 
 - 認証とユーザー管理
 - organization / membership / invite / role
-- `/admin` のデータ管理画面
-- `/ops` の運用画面
+- `/console` の統合管理画面
+- `/admin` の生管理画面
+- `/ops` の内部運用画面
 - media 管理
 - billing
 - jobs / audit / restore / backup
@@ -21,9 +22,11 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 
 - `/bootstrap/owner` で最初の `platform_owner` を作れる
 - `/admin` で core のデータと設定を触れる
-- `/ops` で health / recovery / project factory を扱える
+- `/console` で日常の管理をまとめて見る
+- `/console/factory` で新しい project を作れる
+- `/console/ops` で運用系の入口をまとめて見る
 - `npm run bootstrap:project` で新しい project の骨組みを作れる
-- `/ops` からも project の manifest 確認と scaffold 作成ができる
+- `/ops` は内部導線として残しつつ、表向きの project 作成は `/console/factory`、運用導線は `/console/ops` に寄せていく
 - `example` project を見本として同梱している
 
 ## 最短フロー
@@ -36,10 +39,13 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 4. `npm run generate:importmap`
 5. `npm run dev`
 6. `http://localhost:3000/bootstrap/owner` で最初の `platform_owner` を作る
-7. `http://localhost:3000/ops` を開いて `Project Factory` から新しい project を作る
-8. `http://localhost:3000/app` で project に入り、画面と API を足していく
+7. `http://localhost:3000/admin` で core のデータと設定を確認する
+8. `http://localhost:3000/console` を開いて全体の管理画面を見る
+9. `http://localhost:3000/console/factory` で新しい project を作る
+10. `http://localhost:3000/console/ops` で運用系の入口を触る
+11. `http://localhost:3000/app` で project に入り、画面と API を足していく
 
-迷ったら、まずは `/bootstrap/owner` → `/ops` → `/app` の順で触れば大丈夫です。
+迷ったら、まずは `/bootstrap/owner` → `/admin` → `/console` → `/app` の順で触れば大丈夫です。
 
 ## まずやること
 
@@ -56,7 +62,7 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 
 - `http://localhost:3000/app`
 - `http://localhost:3000/admin`
-- `http://localhost:3000/ops`
+- `http://localhost:3000/console`
 
 ## 必須 env
 
@@ -78,7 +84,7 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 
 ### `/admin`
 
-データと設定を触る画面です。
+生の Payload 管理画面です。裏口として残します。
 
 - users
 - organizations
@@ -88,20 +94,32 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 - globals
 - billing 関連 collection
 
+### `/console`
+
+Studio99 の表向きの統合管理画面です。
+
+- project 一覧
+- tenant 一覧
+- user 一覧
+- billing / media / settings
+- recovery / jobs / security
+
 ### `/ops`
 
-運用画面です。
+内部運用の導線です。
 
 - health / ready の確認
 - recovery 方針の確認
 - project factory
 - failures / jobs / backup 導線
 
+表向きの project 作成は `/console/factory`、運用導線は `/console/ops` に寄せていきます。
+
 ## 新しい project の作り方
 
 ### いちばん簡単
 
-`/ops` を開いて `Project Factory` を使います。
+`/console/factory` を開いて `Project Factory` を使います。
 
 - project key を入れる
 - 表示名を入れる
@@ -147,7 +165,7 @@ npm run bootstrap:project -- console "Studio99 Console" saas
 1. `.env.local` に `BOOTSTRAP_OWNER_TOKEN` を入れる
 2. `http://localhost:3000/bootstrap/owner` を開く
 3. メールアドレス、パスワード、token を入れる
-4. 作成できたら `/admin` と `/ops` に進む
+4. 作成できたら `/admin` で中身を確認し、`/console` に進む
 
 この導線は「最初の1人」を作るためのものです。
 以降の user 管理は `/admin` と core の collection で行います。

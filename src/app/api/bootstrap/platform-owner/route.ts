@@ -75,6 +75,7 @@ export async function POST(request: Request) {
 
     return createResponse(request, {
       adminUrl: '/admin',
+      consoleUrl: '/console',
       ok: true,
       opsUrl: '/ops',
       userId: owner.id,
