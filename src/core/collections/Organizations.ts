@@ -6,6 +6,10 @@ import {
   organizationReadAccess,
   organizationUpdateAccess,
 } from '../access'
+import {
+  createCollectionAuditAfterChange,
+  createCollectionAuditAfterDelete,
+} from '../hooks/audit'
 
 export const Organizations: CollectionConfig = {
   slug: 'organizations',
@@ -18,6 +22,10 @@ export const Organizations: CollectionConfig = {
     create: organizationCreateAccess,
     update: organizationUpdateAccess,
     delete: organizationDeleteAccess,
+  },
+  hooks: {
+    afterChange: [createCollectionAuditAfterChange('organizations')],
+    afterDelete: [createCollectionAuditAfterDelete('organizations')],
   },
   fields: [
     {

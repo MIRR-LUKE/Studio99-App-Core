@@ -7,6 +7,10 @@ import {
   mediaReadAccess,
   mediaUpdateAccess,
 } from '../access'
+import {
+  createCollectionAuditAfterChange,
+  createCollectionAuditAfterDelete,
+} from '../hooks/audit'
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -20,6 +24,10 @@ export const Media: CollectionConfig = {
     create: mediaCreateAccess,
     update: mediaUpdateAccess,
     delete: mediaDeleteAccess,
+  },
+  hooks: {
+    afterChange: [createCollectionAuditAfterChange('media')],
+    afterDelete: [createCollectionAuditAfterDelete('media')],
   },
   fields: [
     {

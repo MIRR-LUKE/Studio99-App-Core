@@ -1,12 +1,16 @@
 import type { GlobalConfig } from 'payload'
 
 import { platformManageAccess, platformReadAccess } from '../access'
+import { createGlobalAuditAfterChange } from '../hooks/audit'
 
 export const AppSettings: GlobalConfig = {
   slug: 'app-settings',
   access: {
     read: platformReadAccess,
     update: platformManageAccess,
+  },
+  hooks: {
+    afterChange: [createGlobalAuditAfterChange('app-settings')],
   },
   fields: [
     {

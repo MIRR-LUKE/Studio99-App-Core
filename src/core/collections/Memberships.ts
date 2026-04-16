@@ -8,6 +8,10 @@ import {
   membershipUpdateAccess,
 } from '../access'
 import {
+  createCollectionAuditAfterChange,
+  createCollectionAuditAfterDelete,
+} from '../hooks/audit'
+import {
   stampMembershipJoinDate,
   syncOrganizationOwnerOnMembershipChange,
   syncOrganizationOwnerOnMembershipDelete,
@@ -36,6 +40,7 @@ export const Memberships: CollectionConfig = {
           previousDoc,
           req,
         }),
+      createCollectionAuditAfterChange('memberships'),
     ],
     afterDelete: [
       async ({ doc, req }) =>
@@ -43,6 +48,7 @@ export const Memberships: CollectionConfig = {
           doc,
           req,
         }),
+      createCollectionAuditAfterDelete('memberships'),
     ],
   },
   fields: [

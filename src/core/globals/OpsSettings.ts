@@ -1,12 +1,16 @@
 import type { GlobalConfig } from 'payload'
 
 import { platformOpsAccess } from '../access'
+import { createGlobalAuditAfterChange } from '../hooks/audit'
 
 export const OpsSettings: GlobalConfig = {
   slug: 'ops-settings',
   access: {
     read: platformOpsAccess,
     update: platformOpsAccess,
+  },
+  hooks: {
+    afterChange: [createGlobalAuditAfterChange('ops-settings')],
   },
   fields: [
     {
