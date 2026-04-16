@@ -1,10 +1,12 @@
 import type { GlobalConfig } from 'payload'
 
+import { platformManageAccess, platformReadAccess } from '../access'
+
 export const AppSettings: GlobalConfig = {
   slug: 'app-settings',
   access: {
-    read: () => true,
-    update: () => true,
+    read: platformReadAccess,
+    update: platformManageAccess,
   },
   fields: [
     {

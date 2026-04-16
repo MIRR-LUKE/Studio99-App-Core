@@ -1,10 +1,12 @@
 import type { GlobalConfig } from 'payload'
 
+import { platformOpsAccess } from '../access'
+
 export const OpsSettings: GlobalConfig = {
   slug: 'ops-settings',
   access: {
-    read: () => true,
-    update: () => true,
+    read: platformOpsAccess,
+    update: platformOpsAccess,
   },
   fields: [
     {

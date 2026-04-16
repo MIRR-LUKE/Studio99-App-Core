@@ -1,5 +1,12 @@
 import type { CollectionConfig } from 'payload'
 
+import {
+  organizationCreateAccess,
+  organizationDeleteAccess,
+  organizationReadAccess,
+  organizationUpdateAccess,
+} from '../access'
+
 export const Organizations: CollectionConfig = {
   slug: 'organizations',
   timestamps: true,
@@ -7,10 +14,10 @@ export const Organizations: CollectionConfig = {
     useAsTitle: 'name',
   },
   access: {
-    read: () => true,
-    create: () => true,
-    update: () => true,
-    delete: () => true,
+    read: organizationReadAccess,
+    create: organizationCreateAccess,
+    update: organizationUpdateAccess,
+    delete: organizationDeleteAccess,
   },
   fields: [
     {
