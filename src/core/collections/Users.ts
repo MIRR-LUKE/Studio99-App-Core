@@ -1,11 +1,28 @@
 import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
 import type { CollectionConfig } from 'payload'
 
+import { env } from '../../lib/env'
 import { ORGANIZATION_ROLE_OPTIONS } from '../utils/roles'
 
 export const Users: CollectionConfig = {
   slug: 'users',
-  auth: true,
+  auth: {
+    cookies: {
+      domain: env.auth.cookieDomain,
+      sameSite: env.auth.cookieSameSite,
+      secure: env.auth.cookieSecure,
+    },
+    forgotPassword: {
+      expiration: env.auth.forgotPasswordExpirationMs,
+    },
+    lockTime: env.auth.lockTimeMs,
+    loginWithUsername: false,
+    maxLoginAttempts: env.auth.maxLoginAttempts,
+    removeTokenFromResponses: env.auth.removeTokenFromResponses || undefined,
+    tokenExpiration: env.auth.tokenExpirationSeconds,
+    useSessions: env.auth.useSessions,
+    verify: env.auth.verifyEmail,
+  },
   timestamps: true,
   admin: {
     useAsTitle: 'email',

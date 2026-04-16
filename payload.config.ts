@@ -47,6 +47,7 @@ export default buildConfig({
   globals: [AppSettings, OpsSettings],
   editor: lexicalEditor(),
   secret: env.PAYLOAD_SECRET,
+  serverURL: env.NEXT_PUBLIC_SERVER_URL,
   db: postgresAdapter({
     pool: {
       connectionString: env.DATABASE_URL,

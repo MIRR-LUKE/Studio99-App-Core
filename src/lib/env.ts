@@ -4,6 +4,8 @@ type RequiredEnvKey = (typeof requiredEnvKeys)[number]
 
 const storageProviders = ['local', 's3'] as const
 type StorageProvider = (typeof storageProviders)[number]
+const authCookieSameSiteValues = ['Lax', 'None', 'Strict'] as const
+type AuthCookieSameSite = (typeof authCookieSameSiteValues)[number]
 
 function requireEnv(key: RequiredEnvKey): string {
   const value = process.env[key]?.trim()
@@ -86,6 +88,11 @@ function requireWhen(condition: boolean, key: string): string {
 
 const storageProvider = enumEnv<StorageProvider>('STORAGE_PROVIDER', storageProviders, 'local')
 const stripeEnabled = booleanEnv('STRIPE_ENABLED', false)
+const authCookieSameSite = enumEnv<AuthCookieSameSite>(
+  'AUTH_COOKIE_SAME_SITE',
+  authCookieSameSiteValues,
+  'Lax',
+)
 
 export const env = {
   DATABASE_URL: requireEnv('DATABASE_URL'),
@@ -121,5 +128,17 @@ export const env = {
       'STRIPE_WEBHOOK_FORWARD_TO',
       'http://host.docker.internal:3000/api/stripe/webhook',
     ),
+  },
+  auth: {
+    cookieDomain: optionalEnv('AUTH_COOKIE_DOMAIN') || undefined,
+    cookieSameSite: authCookieSameSite,
+    cookieSecure: booleanEnv('AUTH_COOKIE_SECURE', optionalEnv('NODE_ENV', 'development') === 'production'),
+    forgotPasswordExpirationMs: integerEnv('AUTH_FORGOT_PASSWORD_EXPIRATION_MS', 60 * 60 * 1000),
+    lockTimeMs: integerEnv('AUTH_LOCK_TIME_MS', 10 * 60 * 1000),
+    maxLoginAttempts: integerEnv('AUTH_MAX_LOGIN_ATTEMPTS', 5),
+    removeTokenFromResponses: booleanEnv('AUTH_REMOVE_TOKEN_FROM_RESPONSES', true),
+    tokenExpirationSeconds: integerEnv('AUTH_TOKEN_EXPIRATION', 2 * 60 * 60),
+    useSessions: booleanEnv('AUTH_USE_SESSIONS', true),
+    verifyEmail: booleanEnv('AUTH_VERIFY_EMAIL', true),
   },
 } as const

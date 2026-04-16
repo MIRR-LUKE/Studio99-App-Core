@@ -37,6 +37,13 @@ Next.js + Payload を土台にした Studio99 の共通アプリ基盤です。
 - `src/app/_lib`: route-private view helpers
 - `src/app/_server`: server-only helpers
 
+## Auth 方針
+
+- first-party app と admin は Payload sessions + HTTP-only cookie を前提にする
+- auth response から token は返さず、server-side cookie 運用を優先する
+- email verification, login lockout, secure cookie は env で明示し、本番では secure cookie を有効にする
+- `NEXT_PUBLIC_SERVER_URL` を Payload の `serverURL` に揃えて verification link の起点にする
+
 ## よく使うコマンド
 
 - `npm run dev:infra`
