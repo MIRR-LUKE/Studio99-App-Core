@@ -4,12 +4,12 @@ import './globals.css'
 
 export const metadata = {
   title: 'Studio99 Application Core',
-  description: 'Shared app core for Studio99 projects.',
+  description: 'Studio99 の新規アプリを素早く作るための共通コアです。',
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body>{children}</body>
     </html>
   )

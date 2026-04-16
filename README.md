@@ -1,410 +1,210 @@
 # Studio99 Application Core
 
-Studio99 Application Core は、Studio99 の各プロダクトを素早く作るための Next.js + Payload ベースの共通基盤です。
+Studio99 Application Core は、Studio99 の新規アプリを早く作るための土台です。
 
-毎回ゼロから作り直したくないものを、最初からまとめて持たせています。
+毎回ゼロから作りたくないものを、最初から入れています。
 
-- セッション前提の認証とユーザー管理
-- organization / membership / invite / role によるテナント基盤
-- Payload Admin による共通データとプロジェクトデータの管理
-- private-first な media 管理と retention metadata
-- Stripe を正本にした billing 同期
-- jobs / ops / recovery の運用導線
-- audit / versions / restore policy を含む保守土台
+- 認証とユーザー管理
+- organization / membership / invite / role
+- `/admin` のデータ管理画面
+- `/ops` の運用画面
+- media 管理
+- billing
+- jobs / audit / restore / backup
 
-目的は明確です。新規アプリを作るたびに auth、admin、billing、ops を作り直すのをやめて、各プロジェクト固有の体験にすぐ着手できるようにすることです。
+難しく考えなくて大丈夫です。
+この repo は「土台はもうあるので、project 固有の画面と機能だけ作ればいい」状態を作るためのものです。
 
-## ルート構成
+## いま何ができるか
 
-- `/app`: 各アプリの本画面
-- `/ops`: Studio99 の運用画面
-- `/admin`: Payload Admin
-- `/api`: Payload API と app / ops 用 Route Handlers
+この core は、もう動かせる状態です。
 
-## 採用スタック
+- `/bootstrap/owner` で最初の `platform_owner` を作れる
+- `/admin` で core のデータと設定を触れる
+- `/ops` で health / recovery / project factory を扱える
+- `npm run bootstrap:project` で新しい project の骨組みを作れる
+- `/ops` からも project の manifest 確認と scaffold 作成ができる
+- `example` project を見本として同梱している
 
-- Next.js App Router
-- Payload CMS 3
-- PostgreSQL
-- Stripe Billing
-- S3 互換ストレージまたは local storage
-- Payload Jobs
+## まずやること
 
-## コアで提供する機能
+1. `npm install`
+2. `npm run dev:infra`
+3. `.env.example` を `.env.local` にコピー
+4. `.env.local` に最低限の env を入れる
+5. `npm run generate:types`
+6. `npm run generate:importmap`
+7. `npm run dev`
+8. `http://localhost:3000/bootstrap/owner` を開いて最初の管理者を作る
 
-### Identity / Tenant
+最初の owner を作ったら、次に開く場所はこの3つです。
 
-- `users`: session auth, verify email, password reset, lockout policy, locale, timezone
-- `organizations`
-- `memberships`
-- `invites`
-- current organization switch
-- platform role / tenant role の分離
+- `http://localhost:3000/app`
+- `http://localhost:3000/admin`
+- `http://localhost:3000/ops`
 
-### Shared Settings / Content
+## 必須 env
 
-- `app-settings`
-- `ops-settings`
-- `legal-texts`
-- `billing-settings`
-- `email-templates`
-- `feature-flags`
-
-### Media / Retention
-
-- `media` collection
-- organization prefix つき object key
-- `/api/core/media/:id/download` 経由の guarded delivery
-- `/api/core/media/:id/restore` 経由の restore 導線
-- archive + retention metadata による soft delete 運用
-
-### Billing
-
-- `billing-customers`
-- `billing-subscriptions`
-- `billing-events`
-- `backup-snapshots`
-- checkout / portal / webhook ingest / retry / meter ingestion
-- entitlements / seat limit / grace period / billing access helper
-
-### Ops / Reliability
-
-- `support-notes`
-- `operational-events`
-- `backup-snapshots`
-- health / ready endpoint
-- failure console API
-- dangerous action protocol
-- backup snapshot / restore drill 記録
-
-## リポジトリ構成
-
-- `src/app/(app)`: プロダクト画面と app API
-- `src/app/(ops)`: ops 画面と ops API
-- `src/app/(payload)`: Payload Admin と Payload API
-- `src/core/collections`: 共通 collection
-- `src/core/globals`: singleton 設定
-- `src/core/access`: access rule と role helper
-- `src/core/billing`: Stripe catalog / sync / meter / state helper
-- `src/core/ops`: jobs / failures / health / bootstrap / recovery
-- `src/core/server`: Local API と server helper
-
-## クイックスタート
-
-### 前提
-
-- Node.js 20.9+
-- npm
-- Docker Desktop
-
-### ローカル依存サービス
-
-`docker-compose.yml` で以下を立ち上げます。
-
-- Postgres: `localhost:5432`
-- Mailpit SMTP: `localhost:1025`
-- Mailpit UI: `http://localhost:8025`
-- MinIO API: `http://localhost:9000`
-- MinIO Console: `http://localhost:9001`
-- Stripe CLI: `docker compose --profile stripe up stripe-cli`
-
-### セットアップ
-
-1. 依存を入れる
-
-   ```bash
-   npm install
-   ```
-
-2. ローカル infra を起動する
-
-   ```bash
-   npm run dev:infra
-   ```
-
-3. `.env.example` を `.env.local` にコピーし、最低限これを設定する
-
-   - `DATABASE_URL`
-   - `PAYLOAD_SECRET`
-   - `NEXT_PUBLIC_SERVER_URL`
-
-4. Payload の型と import map を生成する
-
-   ```bash
-   npm run generate:types
-   npm run generate:importmap
-   ```
-
-5. 検証する
-
-   ```bash
-   npm run typecheck
-   npm run lint
-   ```
-
-6. 開発サーバーを起動する
-
-   ```bash
-   npm run dev
-   ```
-
-### よく使う URL
-
-- app shell: `http://localhost:3000/app`
-- ops shell: `http://localhost:3000/ops`
-- admin: `http://localhost:3000/admin`
-- health: `http://localhost:3000/api/health`
-- ready: `http://localhost:3000/api/ready`
-
-## 環境変数
-
-### 必須
+最低限これだけ入っていれば動き始めます。
 
 - `DATABASE_URL`
 - `PAYLOAD_SECRET`
 - `NEXT_PUBLIC_SERVER_URL`
+- `BOOTSTRAP_OWNER_TOKEN`
 
-### Auth
+`BOOTSTRAP_OWNER_TOKEN` は、最初の `platform_owner` を作るためのワンタイム token です。
 
-- `AUTH_USE_SESSIONS`
-- `AUTH_REMOVE_TOKEN_FROM_RESPONSES`
-- `AUTH_VERIFY_EMAIL`
-- `AUTH_MAX_LOGIN_ATTEMPTS`
-- `AUTH_LOCK_TIME_MS`
-- `AUTH_TOKEN_EXPIRATION`
-- `AUTH_FORGOT_PASSWORD_EXPIRATION_MS`
-- `AUTH_COOKIE_SECURE`
-- `AUTH_COOKIE_SAME_SITE`
-- `AUTH_COOKIE_DOMAIN`
+## 3つの入口
 
-### Mail
+### `/app`
 
-- `SMTP_ENABLED`
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_USER`
-- `SMTP_PASS`
-- `EMAIL_FROM`
-- `MAILPIT_UI_URL`
+アプリ本体の入口です。
+いまある project の一覧を見たり、各 project に入ったりします。
 
-### Storage
+### `/admin`
 
-- `STORAGE_PROVIDER`
-- `S3_BUCKET`
-- `S3_REGION`
-- `S3_ENDPOINT`
-- `S3_ACCESS_KEY_ID`
-- `S3_SECRET_ACCESS_KEY`
-- `S3_FORCE_PATH_STYLE`
-- `MINIO_CONSOLE_URL`
+データと設定を触る画面です。
 
-### Stripe / Billing
+- users
+- organizations
+- memberships
+- invites
+- media
+- globals
+- billing 関連 collection
 
-- `STRIPE_ENABLED`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_API_VERSION`
-- `STRIPE_CHECKOUT_CANCEL_URL`
-- `STRIPE_CHECKOUT_SUCCESS_URL`
-- `STRIPE_PORTAL_CONFIGURATION_ID`
-- `STRIPE_PUBLISHABLE_KEY`
-- `STRIPE_PRICE_ID`
-- `STRIPE_PRODUCT_ID`
-- `STRIPE_WEBHOOK_FORWARD_TO`
-- `BILLING_GRACE_PERIOD_DAYS`
-- `BILLING_DEFAULT_CURRENCY`
-- `BILLING_FALLBACK_STATUS`
+### `/ops`
 
-### Jobs / Observability / Recovery
+運用画面です。
 
-- `JOBS_AUTORUN`
-- `JOBS_AUTORUN_CRON`
-- `JOBS_RUN_QUEUE`
-- `LOG_LEVEL`
-- `SERVICE_NAME`
-- `BACKUP_RETENTION_DAYS`
-- `EXPORT_RETENTION_DAYS`
-- `MEDIA_RETENTION_DAYS`
-- `RESTORE_DRILL_CADENCE_DAYS`
+- health / ready の確認
+- recovery 方針の確認
+- project factory
+- failures / jobs / backup 導線
 
-## Role Model
+## 新しい project の作り方
 
-### Platform roles
+### いちばん簡単
 
-- `platform_owner`
-- `platform_admin`
-- `platform_operator`
-- `platform_support`
-- `platform_billing`
-- `platform_readonly`
+`/ops` を開いて `Project Factory` を使います。
 
-### Tenant roles
+- project key を入れる
+- 表示名を入れる
+- template を選ぶ
+- manifest を見る
+- 問題なければ scaffold を作る
 
-- `org_owner`
-- `org_admin`
-- `manager`
-- `editor`
-- `member`
-- `viewer`
-
-ルールは単純です。
-
-- platform role は `/ops` と cross-tenant な操作を開く
-- tenant role は organization 内の `/app` 体験を制御する
-- 同じ user が両方を持つことはあっても、role 判定は混ぜない
-
-詳細は [docs/role-matrix.md](docs/role-matrix.md) にまとめています。
-
-## Access と Local API の設計ルール
-
-- tenant boundary は collection access で強制する
-- dangerous action は ops route 経由でのみ実行する
-- hard delete より soft delete + retention metadata を優先する
-- managed collection / global は versions と audit を前提にする
-- 通常のアプリ挙動では Payload Local API に request context を渡す
-- `overrideAccess: true` は seed / migration / jobs / internal maintenance に限定する
-
-## Media ポリシー
-
-- visibility の default は `private`
-- object key は `organization/<orgId>/...` 形式
-- 配信は `/api/core/media/:id/download` を通す
-- archive 時に `deletedAt`, `retentionState`, `retentionUntil` を持つ
-- 物理 purge は retention policy と infra 側の運用で行う
-
-## Billing フロー
-
-1. `billing-settings` に plan catalog を定義する
-2. `POST /api/core/billing/checkout` で checkout session を作る
-3. `POST /api/core/billing/portal` で customer portal に送る
-4. `POST /api/core/billing/webhook` で signed webhook を受ける
-5. `billing-events` に保存し、失敗時は retry できるようにする
-6. subscription 状態から organization の billing status / seat / entitlement を同期する
-
-core に入っている billing routes:
-
-- `POST /api/core/billing/checkout`
-- `POST /api/core/billing/portal`
-- `POST /api/core/billing/meter`
-- `POST /api/core/billing/webhook`
-- `POST /api/core/billing/events/:id/retry`
-
-詳細は [docs/billing.md](docs/billing.md) を見てください。
-
-## Jobs と Queue
-
-用意している queue:
-
-- `emails`
-- `billing`
-- `sync`
-- `exports`
-- `ai`
-- `maintenance`
-
-用意している task slug:
-
-- `deliver-email`
-- `retry-billing-event`
-- `sync-organization-billing`
-- `export-organization-snapshot`
-- `ai-post-process`
-- `run-maintenance`
-
-コマンド:
-
-```bash
-npm run jobs:run
-npm run jobs:handle-schedules
-```
-
-ローカルでは app 内または Payload CLI で回せます。本番では worker process を分けるか、外部 cron から jobs endpoint を叩く運用を想定しています。
-
-詳細は [docs/ops.md](docs/ops.md) と [docs/billing.md](docs/billing.md) にあります。
-
-## Ops Protocol
-
-ops routes は platform ops access を要求します。dangerous action には次が必須です。
-
-- 明示的な confirmation
-- 8 文字以上の reason
-- audit / operational event の記録
-
-主な ops endpoints:
-
-- `GET /api/ops/failures`
-- `POST /api/ops/failures/:id/retry`
-- `POST /api/ops/jobs/run`
-- `POST /api/ops/jobs/:id/retry`
-- `POST /api/ops/recovery/backup`
-- `POST /api/ops/recovery/restore-drill`
-- `POST /api/ops/bootstrap/manifest`
-
-## Versions / Restore / Backup
-
-Payload versions は次のために使います。
-
-- draft preview
-- autosave
-- change history
-- managed document / global の restore
-
-ただし、infra backup の代わりではありません。
-
-infra 側で持つべきもの:
-
-- Postgres backup / restore
-- object storage backup / restore
-- secret rotation
-- full-environment の restore drill
-
-詳しくは [docs/backup-restore.md](docs/backup-restore.md) を参照してください。
-
-## 新規プロジェクトの立ち上げ
-
-同梱の bootstrap script を使います。
+### コマンドで作る
 
 ```bash
 npm run bootstrap:project -- console "Studio99 Console"
 ```
 
-これで次が作られます。
+template も選べます。
+
+```bash
+npm run bootstrap:project -- console "Studio99 Console" saas
+```
+
+用意している template:
+
+- `workspace`
+- `saas`
+- `content`
+- `ops-tool`
+
+作られるもの:
 
 - `src/app/(app)/app/<projectKey>/page.tsx`
 - `src/app/api/<projectKey>/route.ts`
 - `src/projects/<projectKey>/README.md`
+- `src/projects/<projectKey>/project.config.ts`
+- `src/projects/<projectKey>/feature-flags.ts`
+- `src/projects/<projectKey>/billing-note.md`
+- `src/projects/<projectKey>/collections/README.md`
+- `src/projects/<projectKey>/components/README.md`
+- `src/projects/<projectKey>/server/README.md`
 - `docs/projects/<projectKey>.md`
+- `docs/projects/<projectKey>-billing.md`
 
-そのあと、project 固有の collection / route / jobs を足していきます。auth、admin、billing、feature flags、uploads、ops は core をそのまま使います。
+## 最初の管理者の作り方
 
-詳細は [docs/bootstrap.md](docs/bootstrap.md) を見てください。
+1. `.env.local` に `BOOTSTRAP_OWNER_TOKEN` を入れる
+2. `http://localhost:3000/bootstrap/owner` を開く
+3. メールアドレス、パスワード、token を入れる
+4. 作成できたら `/admin` と `/ops` に進む
 
-初回セットアップの順番は [docs/first-run.md](docs/first-run.md) にまとめています。  
-軽い見本として `example` project も同梱しています。
+この導線は「最初の1人」を作るためのものです。
+以降の user 管理は `/admin` と core の collection で行います。
 
-## 検証コマンド
+## example project
+
+`example` は、最初に見るための見本です。
+
+- `/app/example`
+- `/api/example`
+- `src/projects/example`
+
+見る順番はこれで十分です。
+
+1. `src/projects/example/project.config.ts`
+2. `src/projects/example/feature-flags.ts`
+3. `src/projects/example/billing-note.md`
+4. `src/projects/example/collections/README.md`
+5. `src/app/(app)/app/example/page.tsx`
+
+## よく使うコマンド
 
 ```bash
+npm install
+npm run dev:infra
 npm run generate:types
 npm run generate:importmap
+npm run dev
 npm run typecheck
 npm run lint
 npm run build
 ```
 
-## 関連ドキュメント
+## よくあるつまずき
+
+### `admin` や `ops` に進めない
+
+- `.env.local` が足りない
+- `BOOTSTRAP_OWNER_TOKEN` を入れていない
+- 最初の owner をまだ作っていない
+
+### 起動したのに画面が変
+
+- `generate:types`
+- `generate:importmap`
+
+を忘れていることが多いです。
+
+### project を作ったのに何を触ればいいかわからない
+
+まずこの順で見てください。
+
+1. `src/projects/<projectKey>/project.config.ts`
+2. `src/projects/<projectKey>/feature-flags.ts`
+3. `src/app/(app)/app/<projectKey>/page.tsx`
+4. `src/app/api/<projectKey>/route.ts`
+
+## 使い方の詳しい説明
+
+- [docs/how-to-use.md](docs/how-to-use.md)
+- [docs/first-run.md](docs/first-run.md)
+- [docs/bootstrap.md](docs/bootstrap.md)
+- [docs/ops.md](docs/ops.md)
+
+## もう少し深い docs
 
 - [docs/architecture.md](docs/architecture.md)
-- [docs/security.md](docs/security.md)
-- [docs/naming.md](docs/naming.md)
 - [docs/auth.md](docs/auth.md)
+- [docs/security.md](docs/security.md)
+- [docs/backup-restore.md](docs/backup-restore.md)
+- [docs/role-matrix.md](docs/role-matrix.md)
+- [docs/naming.md](docs/naming.md)
 - [docs/migrations.md](docs/migrations.md)
 - [docs/review-policy.md](docs/review-policy.md)
 - [docs/adr/README.md](docs/adr/README.md)
-- [docs/role-matrix.md](docs/role-matrix.md)
-- [docs/billing.md](docs/billing.md)
-- [docs/ops.md](docs/ops.md)
-- [docs/security.md](docs/security.md)
-- [docs/backup-restore.md](docs/backup-restore.md)
-- [docs/first-run.md](docs/first-run.md)
-- [docs/bootstrap.md](docs/bootstrap.md)

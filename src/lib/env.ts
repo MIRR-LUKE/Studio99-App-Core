@@ -175,6 +175,9 @@ export const env = {
     logLevel: optionalEnv('LOG_LEVEL', 'info'),
     serviceName: optionalEnv('SERVICE_NAME', 'studio99-app-core'),
   },
+  bootstrap: {
+    ownerToken: optionalEnv('BOOTSTRAP_OWNER_TOKEN'),
+  },
   recovery: {
     backupRetentionDays: integerEnv('BACKUP_RETENTION_DAYS', 30),
     exportRetentionDays: integerEnv('EXPORT_RETENTION_DAYS', 14),

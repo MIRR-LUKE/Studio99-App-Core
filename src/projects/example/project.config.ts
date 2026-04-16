@@ -6,4 +6,5 @@ export const projectConfig = {
   featureFlags: ['example-beta', 'example-ops-preview'],
   key: 'example',
   name: 'サンプルプロジェクト',
+  template: 'workspace',
 }

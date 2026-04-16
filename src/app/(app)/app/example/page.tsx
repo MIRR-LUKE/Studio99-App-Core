@@ -4,8 +4,7 @@ export default function ExampleProjectPage() {
       <p>サンプルプロジェクト</p>
       <h1>サンプルワークスペース</h1>
       <p>
-        Studio99 Application Core に同梱している軽量な例です。project 固有の画面、collection、
-        job、feature flag をここから増やせます。
+        Studio99 Application Core に同梱している軽量な例です。標準ワークスペースの始まり方をそのまま見られます。
       </p>
     </section>
   )

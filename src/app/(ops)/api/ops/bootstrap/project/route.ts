@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
 
 import { canAccessOps } from '@/core/access'
-import { buildProjectBootstrapManifest } from '@/core/ops/bootstrap'
+import { writeProjectScaffold } from '@/core/ops/bootstrap'
 import type { ProjectTemplate } from '@/core/ops/bootstrap'
 import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
 } from '@/core/server/payloadRequest'
 import { createSameOriginMutationGuard, enforceRateLimit } from '@/core/security'
+
+export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   const sameOriginGuard = createSameOriginMutationGuard(request)
@@ -25,7 +27,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const body = (await request.json()) as {
+  const body = (await request.json().catch(() => ({}))) as {
     name?: string
     projectKey?: string
     template?: ProjectTemplate
@@ -40,24 +42,35 @@ export async function POST(request: Request) {
   }
 
   const rateLimited = enforceRateLimit({
-    identityParts: [req.user.id, body.projectKey],
+    identityParts: [req.user.id, body.projectKey, body.template ?? 'workspace'],
     limit: 10,
     request,
-    scope: 'ops:bootstrap:manifest',
+    scope: 'ops:bootstrap:project',
     windowMs: 10 * 60 * 1000,
   })
   if (rateLimited) {
     return rateLimited
   }
 
-  const manifest = buildProjectBootstrapManifest({
-    name: body.name,
-    projectKey: body.projectKey,
-    template: body.template,
-  })
+  try {
+    const result = await writeProjectScaffold({
+      name: body.name,
+      projectKey: body.projectKey,
+      template: body.template,
+    })
 
-  return applyPayloadResponseHeaders(NextResponse.json(manifest), responseHeaders, {
-    authenticated: true,
-    request,
-  })
+    return applyPayloadResponseHeaders(NextResponse.json(result, { status: 201 }), responseHeaders, {
+      authenticated: true,
+      request,
+    })
+  } catch (error) {
+    return applyPayloadResponseHeaders(
+      NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Failed to scaffold project.' },
+        { status: 400 },
+      ),
+      responseHeaders,
+      { authenticated: true, request },
+    )
+  }
 }

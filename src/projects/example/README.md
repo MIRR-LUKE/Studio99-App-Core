@@ -1,6 +1,7 @@
 # サンプルプロジェクト
 
 - project key: `example`
+- template: `標準ワークスペース`
 - main route: `/app/example`
 - api route: `/api/example`
 

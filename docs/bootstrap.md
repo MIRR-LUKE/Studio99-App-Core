@@ -1,20 +1,49 @@
-# プロジェクト bootstrap
+# project bootstrap
 
-core には、新規プロダクトを一定の形で始めるための bootstrap script が入っています。
+新しい app を始めるときの project factory です。
 
-## コマンド
+## 2つの使い方
+
+### 1. `/ops` から作る
+
+`Project Factory` を使います。
+
+- project key を入れる
+- 表示名を入れる
+- template を選ぶ
+- manifest を確認する
+- scaffold を作る
+
+### 2. コマンドで作る
 
 ```bash
-npm run bootstrap:project -- <projectKey> "<Project Name>"
+npm run bootstrap:project -- <projectKey> "<プロジェクト名>" [template]
 ```
 
 例:
 
 ```bash
 npm run bootstrap:project -- console "Studio99 Console"
+npm run bootstrap:project -- pararia "Pararia" saas
 ```
 
-## 生成されるファイル
+## template
+
+使える template:
+
+- `workspace`
+- `saas`
+- `content`
+- `ops-tool`
+
+ざっくりした使い分け:
+
+- `workspace`: まず迷ったらこれ
+- `saas`: billing / entitlement を強く使う
+- `content`: 記事や配信中心
+- `ops-tool`: 社内運用ツールや管理画面寄り
+
+## 何が作られるか
 
 - `src/app/(app)/app/<projectKey>/page.tsx`
 - `src/app/api/<projectKey>/route.ts`
@@ -22,27 +51,15 @@ npm run bootstrap:project -- console "Studio99 Console"
 - `src/projects/<projectKey>/project.config.ts`
 - `src/projects/<projectKey>/feature-flags.ts`
 - `src/projects/<projectKey>/billing-note.md`
+- `src/projects/<projectKey>/collections/README.md`
+- `src/projects/<projectKey>/components/README.md`
+- `src/projects/<projectKey>/server/README.md`
 - `docs/projects/<projectKey>.md`
 - `docs/projects/<projectKey>-billing.md`
 
-## 想定フロー
+## `/ops` の API
 
-1. project shell を bootstrap する
-2. project 固有 collection と hook を足す
-3. project 固有 route と component を足す
-4. 必要なら project 固有 job をつなぐ
-5. auth、admin、billing、feature flags、uploads、ops は core を再利用する
-6. project config stub / feature flag stub / billing note を project 配下に置く
-
-## 生成後の最初の確認
-
-- `docs/first-run.md` の手順に沿って infra を起動する
-- `npm run generate:types` と `npm run generate:importmap` を実行する
-- `/app/<projectKey>` と `/api/<projectKey>` が応答するか確認する
-
-## Bootstrap manifest API
-
-ops から plan-only な manifest を取れます。
+### manifest だけ見る
 
 ```text
 POST /api/ops/bootstrap/manifest
@@ -53,8 +70,36 @@ body:
 ```json
 {
   "name": "Studio99 Console",
-  "projectKey": "console"
+  "projectKey": "console",
+  "template": "workspace"
 }
 ```
 
-レスポンスには、まだファイルを作る前の段階で target route、collection、project docs path、project config path、billing note path が入ります。
+### 実際に scaffold を作る
+
+```text
+POST /api/ops/bootstrap/project
+```
+
+body:
+
+```json
+{
+  "name": "Studio99 Console",
+  "projectKey": "console",
+  "template": "workspace"
+}
+```
+
+## bootstrap のあとにやること
+
+1. `src/projects/<projectKey>/project.config.ts` を見る
+2. `src/projects/<projectKey>/feature-flags.ts` を見る
+3. `/app/<projectKey>` を開く
+4. `/api/<projectKey>` が返るか確かめる
+5. project 固有の page / collection / API を足す
+
+## 迷ったら
+
+見本として `example` project が入っています。
+まずは `src/projects/example` と `/app/example` を見てください。

@@ -3,6 +3,7 @@
 ## 概要
 
 - project key: `example`
+- template: `標準ワークスペース`
 - route: `/app/example`
 - api route: `/api/example`
 

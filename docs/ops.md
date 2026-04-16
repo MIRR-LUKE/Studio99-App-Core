@@ -1,69 +1,61 @@
-# 運用
+# ops
 
-ops surface は product surface から明確に分離します。
+`/ops` は、運用と保守のための画面です。
 
-## 画面
+普段のデータ編集は `/admin`、普段の利用は `/app`、運用と復旧は `/ops` と分けています。
 
-- `GET /ops`
+## `/ops` でできること
 
-ops 画面では次を要約します。
+- health の確認
+- retention 方針の確認
+- project factory
+- failure 系 API の入口
+- backup / restore drill の入口
 
-- queue inventory
-- failure count
-- service health
-- recovery policy
+## project factory
 
-## API
+`/ops` には `Project Factory` を置いています。
+
+ここでできること:
+
+- project の manifest を確認する
+- project の scaffold を実際に作る
+- template ごとの差を見比べる
+
+## recovery
+
+`/ops` から触る recovery 系 API:
+
+- `POST /api/ops/recovery/backup`
+- `POST /api/ops/recovery/restore-drill`
+
+どちらも application-level な記録を残します。
+
+- `backup-snapshots`
+- `operational-events`
+
+## failures / jobs
+
+主な API:
 
 - `GET /api/ops/failures`
 - `POST /api/ops/failures/:id/retry`
 - `POST /api/ops/jobs/run`
 - `POST /api/ops/jobs/:id/retry`
-- `POST /api/ops/recovery/backup`
-- `POST /api/ops/recovery/restore-drill`
-- `POST /api/ops/bootstrap/manifest`
 
-## 危険操作
+## 危険操作のルール
 
-backup snapshot や restore drill には次が必須です。
+dangerous action には次が必要です。
 
 - `confirm: true`
 - 空白を除いて 8 文字以上の `reason`
 
-これにより、高信頼な操作を明示的かつ監査可能に保ちます。
+軽く押せる操作にしないためのルールです。
 
-backup snapshot の metadata は `backup-snapshots` collection に保存され、`operational-events` と一緒に追跡できます。
+## `/admin` との違い
 
-## 障害一覧
+- `/admin`: データと設定を触る
+- `/app`: アプリ本体
+- `/ops`: 運用と復旧
 
-failures API は次を集約します。
-
-- failed Payload job
-- failed billing event
-- failed operational event
-
-ops 側から background failure を一箇所で見て retry できるようにしています。
-
-## ヘルスチェック / 可観測性
-
-- `GET /api/health`
-- `GET /api/ready`
-- request ID は middleware が `x-request-id` に注入する
-- structured logging helper は `src/core/ops/logger.ts` に置く
-
-## Queue モデル
-
-core queue:
-
-- `emails`
-- `billing`
-- `sync`
-- `exports`
-- `ai`
-- `maintenance`
-
-推奨する本番構成:
-
-- app deployment が UI と request/response を担当する
-- 1 つ以上の worker process が `npm run jobs:run` を回す
-- schedule handling は cron または専用 worker から `npm run jobs:handle-schedules` を回す
+この分離を守ると、あとで崩れにくくなります。

@@ -5,5 +5,6 @@ export async function GET() {
     ok: true,
     projectKey: 'example',
     projectName: 'サンプルプロジェクト',
+    template: 'workspace',
   })
 }
