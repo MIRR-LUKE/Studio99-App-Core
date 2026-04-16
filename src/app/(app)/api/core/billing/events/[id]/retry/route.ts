@@ -6,6 +6,7 @@ import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
 } from '@/core/server/payloadRequest'
+import { createSameOriginMutationGuard, enforceRateLimit } from '@/core/security'
 
 type RouteContext = {
   params: Promise<{
@@ -14,16 +15,33 @@ type RouteContext = {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const sameOriginGuard = createSameOriginMutationGuard(request)
+  if (sameOriginGuard) {
+    return sameOriginGuard
+  }
+
   const { req, responseHeaders } = await createAuthenticatedPayloadRequest(request)
 
   if (!canAccessOps({ req })) {
     return applyPayloadResponseHeaders(
       NextResponse.json({ error: 'Ops access required.' }, { status: 403 }),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 
   const { id } = await params
+
+  const rateLimited = enforceRateLimit({
+    identityParts: [req.user.id, id],
+    limit: 20,
+    request,
+    scope: 'billing:retry',
+    windowMs: 10 * 60 * 1000,
+  })
+  if (rateLimited) {
+    return rateLimited
+  }
 
   try {
     await retryBillingEventForOps({
@@ -31,7 +49,10 @@ export async function POST(request: Request, { params }: RouteContext) {
       req,
     })
 
-    return applyPayloadResponseHeaders(NextResponse.json({ ok: true }), responseHeaders)
+    return applyPayloadResponseHeaders(NextResponse.json({ ok: true }), responseHeaders, {
+      authenticated: true,
+      request,
+    })
   } catch (error) {
     return applyPayloadResponseHeaders(
       NextResponse.json(
@@ -39,6 +60,7 @@ export async function POST(request: Request, { params }: RouteContext) {
         { status: 400 },
       ),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 }

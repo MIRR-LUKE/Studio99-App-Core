@@ -131,6 +131,7 @@ Payload versions は application document / global の restore に使い、Postg
 ## 参照ドキュメント
 
 - [認証とセッション](./auth.md)
+- [セキュリティ](./security.md)
 - [命名規約](./naming.md)
 - [移行と生成物運用](./migrations.md)
 - [レビュー方針](./review-policy.md)

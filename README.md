@@ -395,6 +395,7 @@ npm run build
 ## 関連ドキュメント
 
 - [docs/architecture.md](docs/architecture.md)
+- [docs/security.md](docs/security.md)
 - [docs/naming.md](docs/naming.md)
 - [docs/auth.md](docs/auth.md)
 - [docs/migrations.md](docs/migrations.md)

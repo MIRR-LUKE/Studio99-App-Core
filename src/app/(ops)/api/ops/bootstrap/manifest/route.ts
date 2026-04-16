@@ -6,14 +6,21 @@ import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
 } from '@/core/server/payloadRequest'
+import { createSameOriginMutationGuard, enforceRateLimit } from '@/core/security'
 
 export async function POST(request: Request) {
+  const sameOriginGuard = createSameOriginMutationGuard(request)
+  if (sameOriginGuard) {
+    return sameOriginGuard
+  }
+
   const { req, responseHeaders } = await createAuthenticatedPayloadRequest(request)
 
   if (!canAccessOps({ req })) {
     return applyPayloadResponseHeaders(
       NextResponse.json({ error: 'Ops access required.' }, { status: 403 }),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 
@@ -26,7 +33,19 @@ export async function POST(request: Request) {
     return applyPayloadResponseHeaders(
       NextResponse.json({ error: 'name and projectKey are required.' }, { status: 400 }),
       responseHeaders,
+      { authenticated: true, request },
     )
+  }
+
+  const rateLimited = enforceRateLimit({
+    identityParts: [req.user.id, body.projectKey],
+    limit: 10,
+    request,
+    scope: 'ops:bootstrap:manifest',
+    windowMs: 10 * 60 * 1000,
+  })
+  if (rateLimited) {
+    return rateLimited
   }
 
   const manifest = buildProjectBootstrapManifest({
@@ -34,5 +53,8 @@ export async function POST(request: Request) {
     projectKey: body.projectKey,
   })
 
-  return applyPayloadResponseHeaders(NextResponse.json(manifest), responseHeaders)
+  return applyPayloadResponseHeaders(NextResponse.json(manifest), responseHeaders, {
+    authenticated: true,
+    request,
+  })
 }

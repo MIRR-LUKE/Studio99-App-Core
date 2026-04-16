@@ -7,20 +7,42 @@ import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
 } from '@/core/server/payloadRequest'
+import { createSameOriginMutationGuard, enforceRateLimit } from '@/core/security'
 
 export async function POST(request: Request) {
+  const sameOriginGuard = createSameOriginMutationGuard(request)
+  if (sameOriginGuard) {
+    return sameOriginGuard
+  }
+
   const { req, responseHeaders } = await createAuthenticatedPayloadRequest(request)
 
   if (!canAccessOps({ req })) {
     return applyPayloadResponseHeaders(
       NextResponse.json({ error: 'Ops access required.' }, { status: 403 }),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 
   const body = (await request.json()) as { confirm?: boolean; reason?: string }
   const reason = requireDangerousActionReason(body)
+
+  const rateLimited = enforceRateLimit({
+    identityParts: [req.user.id, 'restore-drill'],
+    limit: 5,
+    request,
+    scope: 'ops:recovery:drill',
+    windowMs: 30 * 60 * 1000,
+  })
+  if (rateLimited) {
+    return rateLimited
+  }
+
   const drill = await recordRestoreDrill({ reason, req })
 
-  return applyPayloadResponseHeaders(NextResponse.json(drill), responseHeaders)
+  return applyPayloadResponseHeaders(NextResponse.json(drill), responseHeaders, {
+    authenticated: true,
+    request,
+  })
 }

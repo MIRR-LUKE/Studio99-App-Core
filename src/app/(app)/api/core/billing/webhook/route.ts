@@ -5,6 +5,7 @@ import { getStripe } from '@/core/billing/stripe'
 import { processStripeBillingEvent } from '@/core/billing/sync'
 import { createSystemLocalApi } from '@/core/server/localApi'
 import { createPayloadRequestContext } from '@/core/server/payloadRequest'
+import { applySecurityHeaders } from '@/core/security'
 import { env } from '@/lib/env'
 
 export async function POST(request: Request) {
@@ -13,16 +14,24 @@ export async function POST(request: Request) {
   const signature = request.headers.get('stripe-signature')
 
   if (!signature) {
-    return NextResponse.json({ error: 'Missing stripe-signature header.' }, { status: 400 })
+    return applySecurityHeaders(
+      NextResponse.json({ error: 'Missing stripe-signature header.' }, { status: 400 }),
+      request,
+      { cacheControl: 'no-store' },
+    )
   }
 
   let event: Stripe.Event
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, env.stripe.webhookSecret)
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Invalid webhook signature.' },
-      { status: 400 },
+    return applySecurityHeaders(
+      NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Invalid webhook signature.' },
+        { status: 400 },
+      ),
+      request,
+      { cacheControl: 'no-store' },
     )
   }
 
@@ -43,7 +52,9 @@ export async function POST(request: Request) {
   })
 
   if (existing.docs.length > 0) {
-    return NextResponse.json({ duplicate: true, ok: true })
+    return applySecurityHeaders(NextResponse.json({ duplicate: true, ok: true }), request, {
+      cacheControl: 'no-store',
+    })
   }
 
   const billingEvent = await api.create({
@@ -75,7 +86,9 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ ok: true })
+    return applySecurityHeaders(NextResponse.json({ ok: true }), request, {
+      cacheControl: 'no-store',
+    })
   } catch (error) {
     await api.update({
       collection: 'billing-events',
@@ -90,9 +103,13 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to process billing webhook.' },
-      { status: 500 },
+    return applySecurityHeaders(
+      NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Failed to process billing webhook.' },
+        { status: 500 },
+      ),
+      request,
+      { cacheControl: 'no-store' },
     )
   }
 }

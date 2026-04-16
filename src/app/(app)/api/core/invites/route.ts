@@ -7,6 +7,7 @@ import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
 } from '@/core/server/payloadRequest'
+import { createSameOriginMutationGuard, enforceRateLimit } from '@/core/security'
 import { isOrganizationRole, type OrganizationRole } from '@/core/utils/roles'
 
 export async function GET(request: Request) {
@@ -38,16 +39,25 @@ export async function GET(request: Request) {
     },
   })
 
-  return applyPayloadResponseHeaders(NextResponse.json(result), responseHeaders)
+  return applyPayloadResponseHeaders(NextResponse.json(result), responseHeaders, {
+    authenticated: true,
+    request,
+  })
 }
 
 export async function POST(request: Request) {
+  const sameOriginGuard = createSameOriginMutationGuard(request)
+  if (sameOriginGuard) {
+    return sameOriginGuard
+  }
+
   const { req, responseHeaders } = await createAuthenticatedPayloadRequest(request)
 
   if (!req.user) {
     return applyPayloadResponseHeaders(
       NextResponse.json({ error: 'Authentication required.' }, { status: 401 }),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 
@@ -64,7 +74,19 @@ export async function POST(request: Request) {
         { status: 400 },
       ),
       responseHeaders,
+      { authenticated: true, request },
     )
+  }
+
+  const rateLimited = enforceRateLimit({
+    identityParts: [req.user.id, body.organizationId, body.role],
+    limit: 10,
+    request,
+    scope: 'invites:create',
+    windowMs: 10 * 60 * 1000,
+  })
+  if (rateLimited) {
+    return rateLimited
   }
 
   try {
@@ -75,7 +97,10 @@ export async function POST(request: Request) {
       role: body.role,
     })
 
-    return applyPayloadResponseHeaders(NextResponse.json(invite, { status: 201 }), responseHeaders)
+    return applyPayloadResponseHeaders(NextResponse.json(invite, { status: 201 }), responseHeaders, {
+      authenticated: true,
+      request,
+    })
   } catch (error) {
     return applyPayloadResponseHeaders(
       NextResponse.json(
@@ -83,6 +108,7 @@ export async function POST(request: Request) {
         { status: 403 },
       ),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 }

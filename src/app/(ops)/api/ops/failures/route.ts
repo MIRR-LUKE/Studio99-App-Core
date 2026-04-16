@@ -14,10 +14,14 @@ export async function GET(request: Request) {
     return applyPayloadResponseHeaders(
       NextResponse.json({ error: 'Ops access required.' }, { status: 403 }),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 
   const failures = await listOperationalFailures(req)
 
-  return applyPayloadResponseHeaders(NextResponse.json(failures), responseHeaders)
+  return applyPayloadResponseHeaders(NextResponse.json(failures), responseHeaders, {
+    authenticated: true,
+    request,
+  })
 }

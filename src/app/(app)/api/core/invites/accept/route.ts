@@ -6,14 +6,21 @@ import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
 } from '@/core/server/payloadRequest'
+import { createSameOriginMutationGuard, enforceRateLimit } from '@/core/security'
 
 export async function POST(request: Request) {
+  const sameOriginGuard = createSameOriginMutationGuard(request)
+  if (sameOriginGuard) {
+    return sameOriginGuard
+  }
+
   const { req, responseHeaders } = await createAuthenticatedPayloadRequest(request)
 
   if (!req.user) {
     return applyPayloadResponseHeaders(
       NextResponse.json({ error: 'Authentication required.' }, { status: 401 }),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 
@@ -22,7 +29,19 @@ export async function POST(request: Request) {
     return applyPayloadResponseHeaders(
       NextResponse.json({ error: 'token is required.' }, { status: 400 }),
       responseHeaders,
+      { authenticated: true, request },
     )
+  }
+
+  const rateLimited = enforceRateLimit({
+    identityParts: [req.user.id, body.token.slice(0, 8)],
+    limit: 10,
+    request,
+    scope: 'invites:accept',
+    windowMs: 10 * 60 * 1000,
+  })
+  if (rateLimited) {
+    return rateLimited
   }
 
   try {
@@ -38,7 +57,10 @@ export async function POST(request: Request) {
       sameSite: 'lax',
     })
 
-    return applyPayloadResponseHeaders(response, responseHeaders)
+    return applyPayloadResponseHeaders(response, responseHeaders, {
+      authenticated: true,
+      request,
+    })
   } catch (error) {
     return applyPayloadResponseHeaders(
       NextResponse.json(
@@ -46,6 +68,7 @@ export async function POST(request: Request) {
         { status: 400 },
       ),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 }

@@ -168,6 +168,9 @@ export const env = {
     autorunCron: optionalEnv('JOBS_AUTORUN_CRON', '* * * * *'),
     runQueue: optionalEnv('JOBS_RUN_QUEUE', 'default'),
   },
+  security: {
+    corsAllowlist: optionalEnv('SECURITY_CORS_ALLOWLIST', ''),
+  },
   observability: {
     logLevel: optionalEnv('LOG_LEVEL', 'info'),
     serviceName: optionalEnv('SERVICE_NAME', 'studio99-app-core'),

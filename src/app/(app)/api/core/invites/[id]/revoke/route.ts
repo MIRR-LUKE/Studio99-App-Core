@@ -5,6 +5,7 @@ import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
 } from '@/core/server/payloadRequest'
+import { createSameOriginMutationGuard, enforceRateLimit } from '@/core/security'
 
 type RouteContext = {
   params: Promise<{
@@ -13,16 +14,33 @@ type RouteContext = {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const sameOriginGuard = createSameOriginMutationGuard(request)
+  if (sameOriginGuard) {
+    return sameOriginGuard
+  }
+
   const { req, responseHeaders } = await createAuthenticatedPayloadRequest(request)
 
   if (!req.user) {
     return applyPayloadResponseHeaders(
       NextResponse.json({ error: 'Authentication required.' }, { status: 401 }),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 
   const { id } = await params
+
+  const rateLimited = enforceRateLimit({
+    identityParts: [req.user.id, id],
+    limit: 20,
+    request,
+    scope: 'invites:revoke',
+    windowMs: 10 * 60 * 1000,
+  })
+  if (rateLimited) {
+    return rateLimited
+  }
 
   try {
     await revokeInvite({
@@ -30,7 +48,10 @@ export async function POST(request: Request, { params }: RouteContext) {
       req,
     })
 
-    return applyPayloadResponseHeaders(NextResponse.json({ ok: true }), responseHeaders)
+    return applyPayloadResponseHeaders(NextResponse.json({ ok: true }), responseHeaders, {
+      authenticated: true,
+      request,
+    })
   } catch (error) {
     return applyPayloadResponseHeaders(
       NextResponse.json(
@@ -38,6 +59,7 @@ export async function POST(request: Request, { params }: RouteContext) {
         { status: 403 },
       ),
       responseHeaders,
+      { authenticated: true, request },
     )
   }
 }
