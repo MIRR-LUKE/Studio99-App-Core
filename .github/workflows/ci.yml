@@ -49,6 +49,12 @@ jobs:
             npm install --no-fund --no-audit
           fi
 
+      - name: Generate Payload types
+        run: npm run generate:types
+
+      - name: Generate Payload import map
+        run: npm run generate:importmap
+
       - name: Run lint
         run: |
           if [ -f eslint.config.mjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.js ]; then
