@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'node:path'
 import { buildConfig } from 'payload'
@@ -16,6 +17,23 @@ import { env } from './src/lib/env'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+const allTenantAccessRoles = new Set([
+  'platform_owner',
+  'platform_admin',
+  'platform_operator',
+  'platform_support',
+  'platform_billing',
+])
+
+const userHasAccessToAllTenants = (user: unknown) => {
+  if (!user || typeof user !== 'object') {
+    return false
+  }
+
+  const platformRole = 'platformRole' in user ? (user as { platformRole?: unknown }).platformRole : undefined
+
+  return typeof platformRole === 'string' && allTenantAccessRoles.has(platformRole)
+}
 
 export default buildConfig({
   admin: {
@@ -38,8 +56,39 @@ export default buildConfig({
     api: '/api',
   },
   sharp,
+  plugins: [
+    multiTenantPlugin({
+      tenantsSlug: Organizations.slug,
+      userHasAccessToAllTenants,
+      tenantsArrayField: {
+        includeDefaultField: false,
+        arrayFieldName: 'organizations',
+        arrayTenantFieldName: 'organization',
+      },
+      collections: {
+        [Organizations.slug]: {
+          useTenantsCollectionAccess: false,
+          useTenantsListFilter: false,
+        },
+        [Memberships.slug]: {
+          customTenantField: true,
+          useTenantAccess: false,
+          useBaseFilter: true,
+        },
+        [Media.slug]: {
+          customTenantField: true,
+          useTenantAccess: false,
+          useBaseFilter: true,
+        },
+        [AuditLogs.slug]: {
+          customTenantField: true,
+          useTenantAccess: false,
+          useBaseFilter: true,
+        },
+      },
+    }),
+  ],
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  plugins: [],
 })

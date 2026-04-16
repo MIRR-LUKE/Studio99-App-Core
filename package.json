@@ -20,6 +20,7 @@
   "dependencies": {
     "@payloadcms/db-postgres": "^3.0.0",
     "@payloadcms/next": "^3.0.0",
+    "@payloadcms/plugin-multi-tenant": "^3.83.0",
     "@payloadcms/richtext-lexical": "^3.0.0",
     "graphql": "^16.11.0",
     "next": "^16.2.0",
@@ -29,11 +30,11 @@
     "sharp": "^0.34.0"
   },
   "devDependencies": {
-    "eslint": "^9.39.1",
-    "eslint-config-next": "^16.2.4",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.2.4",
     "typescript": "^5.0.0"
   }
 }

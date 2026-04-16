@@ -1,4 +1,17 @@
+import { tenantField } from '@payloadcms/plugin-multi-tenant/fields'
 import type { CollectionConfig } from 'payload'
+
+import {
+  membershipCreateAccess,
+  membershipDeleteAccess,
+  membershipReadAccess,
+  membershipUpdateAccess,
+} from '../access'
+import {
+  stampMembershipJoinDate,
+  syncOrganizationOwnerOnMembershipChange,
+  syncOrganizationOwnerOnMembershipDelete,
+} from '../hooks/membershipTenantSync'
 
 export const Memberships: CollectionConfig = {
   slug: 'memberships',
@@ -7,22 +20,48 @@ export const Memberships: CollectionConfig = {
     useAsTitle: 'role',
   },
   access: {
-    read: () => true,
-    create: () => true,
-    update: () => true,
-    delete: () => true,
+    read: membershipReadAccess,
+    create: membershipCreateAccess,
+    update: membershipUpdateAccess,
+    delete: membershipDeleteAccess,
+  },
+  hooks: {
+    beforeChange: [
+      ({ data, originalDoc }) => stampMembershipJoinDate(data, originalDoc),
+    ],
+    afterChange: [
+      async ({ doc, previousDoc, req }) =>
+        syncOrganizationOwnerOnMembershipChange({
+          doc,
+          previousDoc,
+          req,
+        }),
+    ],
+    afterDelete: [
+      async ({ doc, req }) =>
+        syncOrganizationOwnerOnMembershipDelete({
+          doc,
+          req,
+        }),
+    ],
   },
   fields: [
+    {
+      ...tenantField({
+        name: 'organization',
+        tenantsCollectionSlug: 'organizations',
+        tenantsArrayFieldName: 'organizations',
+        tenantsArrayTenantFieldName: 'organization',
+        unique: false,
+        overrides: {
+          label: 'Organization',
+        },
+      }),
+    },
     {
       name: 'user',
       type: 'relationship',
       relationTo: 'users',
-      required: true,
-    },
-    {
-      name: 'organization',
-      type: 'relationship',
-      relationTo: 'organizations',
       required: true,
     },
     {

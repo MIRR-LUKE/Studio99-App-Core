@@ -1,4 +1,12 @@
+import { tenantField } from '@payloadcms/plugin-multi-tenant/fields'
 import type { CollectionConfig } from 'payload'
+
+import {
+  mediaCreateAccess,
+  mediaDeleteAccess,
+  mediaReadAccess,
+  mediaUpdateAccess,
+} from '../access'
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -8,16 +16,23 @@ export const Media: CollectionConfig = {
     useAsTitle: 'filename',
   },
   access: {
-    read: () => true,
-    create: () => true,
-    update: () => true,
-    delete: () => true,
+    read: mediaReadAccess,
+    create: mediaCreateAccess,
+    update: mediaUpdateAccess,
+    delete: mediaDeleteAccess,
   },
   fields: [
     {
-      name: 'organization',
-      type: 'relationship',
-      relationTo: 'organizations',
+      ...tenantField({
+        name: 'organization',
+        tenantsCollectionSlug: 'organizations',
+        tenantsArrayFieldName: 'organizations',
+        tenantsArrayTenantFieldName: 'organization',
+        unique: false,
+        overrides: {
+          label: 'Organization',
+        },
+      }),
     },
     {
       name: 'visibility',

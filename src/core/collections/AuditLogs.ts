@@ -1,4 +1,7 @@
+import { tenantField } from '@payloadcms/plugin-multi-tenant/fields'
 import type { CollectionConfig } from 'payload'
+
+import { platformOpsAccess } from '../access'
 
 export const AuditLogs: CollectionConfig = {
   slug: 'audit-logs',
@@ -7,25 +10,23 @@ export const AuditLogs: CollectionConfig = {
     useAsTitle: 'action',
   },
   access: {
-    read: () => true,
-    create: () => true,
-    update: () => true,
-    delete: () => true,
+    read: platformOpsAccess,
+    create: platformOpsAccess,
+    update: () => false,
+    delete: () => false,
   },
   fields: [
     {
-      name: 'actorUser',
-      type: 'relationship',
-      relationTo: 'users',
-    },
-    {
-      name: 'actorType',
-      type: 'text',
-    },
-    {
-      name: 'organization',
-      type: 'relationship',
-      relationTo: 'organizations',
+      ...tenantField({
+        name: 'organization',
+        tenantsCollectionSlug: 'organizations',
+        tenantsArrayFieldName: 'organizations',
+        tenantsArrayTenantFieldName: 'organization',
+        unique: false,
+        overrides: {
+          label: 'Organization',
+        },
+      }),
     },
     {
       name: 'targetType',
@@ -39,6 +40,15 @@ export const AuditLogs: CollectionConfig = {
       name: 'action',
       type: 'text',
       required: true,
+    },
+    {
+      name: 'actorUser',
+      type: 'relationship',
+      relationTo: 'users',
+    },
+    {
+      name: 'actorType',
+      type: 'text',
     },
     {
       name: 'detail',
