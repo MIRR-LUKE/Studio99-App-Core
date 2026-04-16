@@ -1,6 +1,8 @@
 import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
 import type { CollectionConfig } from 'payload'
 
+import { ORGANIZATION_ROLE_OPTIONS } from '../utils/roles'
+
 export const Users: CollectionConfig = {
   slug: 'users',
   auth: true,
@@ -23,14 +25,7 @@ export const Users: CollectionConfig = {
             name: 'role',
             type: 'select',
             defaultValue: 'member',
-            options: [
-              { label: 'Owner', value: 'org_owner' },
-              { label: 'Admin', value: 'org_admin' },
-              { label: 'Manager', value: 'manager' },
-              { label: 'Editor', value: 'editor' },
-              { label: 'Member', value: 'member' },
-              { label: 'Viewer', value: 'viewer' },
-            ],
+            options: [...ORGANIZATION_ROLE_OPTIONS],
           },
           {
             name: 'status',
@@ -49,6 +44,14 @@ export const Users: CollectionConfig = {
         ],
       }),
       label: 'Organizations',
+    },
+    {
+      name: 'currentOrganization',
+      type: 'relationship',
+      relationTo: 'organizations',
+      admin: {
+        position: 'sidebar',
+      },
     },
     {
       name: 'platformRole',
@@ -72,6 +75,24 @@ export const Users: CollectionConfig = {
       name: 'locale',
       type: 'text',
       defaultValue: 'ja',
+    },
+    {
+      name: 'status',
+      type: 'select',
+      defaultValue: 'active',
+      options: [
+        { label: 'Active', value: 'active' },
+        { label: 'Invited', value: 'invited' },
+        { label: 'Suspended', value: 'suspended' },
+      ],
+    },
+    {
+      name: 'lastLoginAt',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+      },
     },
   ]
 }

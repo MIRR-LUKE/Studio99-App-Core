@@ -45,11 +45,28 @@ const syncUserOrganizations = async (
     }))
     .filter((membership) => membership.organization !== null)
 
+  const user = (await api.findByID({
+    collection: 'users',
+    depth: 0,
+    id: userId,
+  })) as { currentOrganization?: MembershipDoc['organization'] } | null
+
+  const activeOrganizationIds = organizations
+    .map((membership) => membership.organization)
+    .filter((organizationId): organizationId is number | string => organizationId !== null)
+  const currentOrganizationId = resolveDocumentId(user?.currentOrganization)
+  const nextCurrentOrganization =
+    currentOrganizationId !== null &&
+    activeOrganizationIds.map(String).includes(String(currentOrganizationId))
+      ? currentOrganizationId
+      : activeOrganizationIds[0] ?? null
+
   await api.update({
     collection: 'users',
     depth: 0,
     id: userId,
     data: {
+      currentOrganization: nextCurrentOrganization,
       organizations,
     },
   })

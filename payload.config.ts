@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { AppSettings } from './src/core/globals/AppSettings'
 import { OpsSettings } from './src/core/globals/OpsSettings'
 import { AuditLogs } from './src/core/collections/AuditLogs'
+import { Invites } from './src/core/collections/Invites'
 import { Media } from './src/core/collections/Media'
 import { Memberships } from './src/core/collections/Memberships'
 import { Organizations } from './src/core/collections/Organizations'
@@ -42,7 +43,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Organizations, Memberships, Media, AuditLogs],
+  collections: [Users, Organizations, Memberships, Invites, Media, AuditLogs],
   globals: [AppSettings, OpsSettings],
   editor: lexicalEditor(),
   secret: env.PAYLOAD_SECRET,
@@ -70,6 +71,11 @@ export default buildConfig({
       },
       collections: {
         [Memberships.slug]: {
+          customTenantField: true,
+          useTenantAccess: false,
+          useBaseFilter: true,
+        },
+        [Invites.slug]: {
           customTenantField: true,
           useTenantAccess: false,
           useBaseFilter: true,

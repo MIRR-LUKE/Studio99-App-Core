@@ -37,6 +37,15 @@ export const ORGANIZATION_ROLES = [
 
 export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number]
 
+export const ORGANIZATION_ROLE_OPTIONS = [
+  { label: 'Owner', value: 'org_owner' },
+  { label: 'Admin', value: 'org_admin' },
+  { label: 'Manager', value: 'manager' },
+  { label: 'Editor', value: 'editor' },
+  { label: 'Member', value: 'member' },
+  { label: 'Viewer', value: 'viewer' },
+] as const
+
 export const ORGANIZATION_ROLE_RANK: Record<OrganizationRole, number> = {
   org_owner: 0,
   org_admin: 1,
