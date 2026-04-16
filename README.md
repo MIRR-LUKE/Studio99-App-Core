@@ -1,44 +1,47 @@
 # Studio99 Application Core
 
-Studio99 Application Core is a shared Next.js + Payload foundation for building many apps fast without rebuilding the same backend every time.
+Studio99 Application Core は、Studio99 の各プロダクトを素早く作るための Next.js + Payload ベースの共通基盤です。
 
-It gives every project the same stable base:
+毎回ゼロから作り直したくないものを、最初からまとめて持たせています。
 
-- session-first auth and user management
-- organizations, memberships, invites, and role gating
-- Payload admin for shared and project data
-- private-first media handling with retention metadata
-- billing sync anchored on Stripe
-- queueable background work and ops surfaces
-- audit, versions, restore policy, and operational recovery rails
+- セッション前提の認証とユーザー管理
+- organization / membership / invite / role によるテナント基盤
+- Payload Admin による共通データとプロジェクトデータの管理
+- private-first な media 管理と retention metadata
+- Stripe を正本にした billing 同期
+- jobs / ops / recovery の運用導線
+- audit / versions / restore policy を含む保守土台
 
-The goal is simple: start each new product at the project-specific model and UI layer, not at auth, admin, billing, and ops from scratch.
+目的は明確です。新規アプリを作るたびに auth、admin、billing、ops を作り直すのをやめて、各プロジェクト固有の体験にすぐ着手できるようにすることです。
 
-## What lives where
+## ルート構成
 
-- `/app`: product workspace for each application
-- `/ops`: Studio99 platform operations surface
-- `/admin`: Payload admin
-- `/api`: Payload API plus app and ops route handlers
+- `/app`: 各アプリの本画面
+- `/ops`: Studio99 の運用画面
+- `/admin`: Payload Admin
+- `/api`: Payload API と app / ops 用 Route Handlers
 
-## Stack
+## 採用スタック
 
 - Next.js App Router
 - Payload CMS 3
 - PostgreSQL
 - Stripe Billing
-- S3-compatible object storage or local storage
-- Payload Jobs for async work
+- S3 互換ストレージまたは local storage
+- Payload Jobs
 
-## Core capabilities
+## コアで提供する機能
 
-### Identity and tenancy
+### Identity / Tenant
 
-- `users` with session auth, email verification, password reset, lockout policy, locale/timezone
-- `organizations`, `memberships`, `invites`, and current-organization switching
-- platform roles for ops and tenant roles for app access
+- `users`: session auth, verify email, password reset, lockout policy, locale, timezone
+- `organizations`
+- `memberships`
+- `invites`
+- current organization switch
+- platform role / tenant role の分離
 
-### Shared settings and content
+### Shared Settings / Content
 
 - `app-settings`
 - `ops-settings`
@@ -47,109 +50,112 @@ The goal is simple: start each new product at the project-specific model and UI 
 - `email-templates`
 - `feature-flags`
 
-### Media and retention
+### Media / Retention
 
-- `media` collection with org-prefixed object keys
-- private-first delivery URLs under `/api/core/media/:id/download`
-- archive flow with retention metadata instead of hard delete
+- `media` collection
+- organization prefix つき object key
+- `/api/core/media/:id/download` 経由の guarded delivery
+- archive + retention metadata による soft delete 運用
 
 ### Billing
 
 - `billing-customers`
 - `billing-subscriptions`
 - `billing-events`
-- Stripe checkout, portal, webhook ingestion, retry, and meter event ingestion
-- org entitlements, seat limits, grace-period state, and billing access helpers
+- checkout / portal / webhook ingest / retry / meter ingestion
+- entitlements / seat limit / grace period / billing access helper
 
-### Operations and recovery
+### Ops / Reliability
 
 - `support-notes`
 - `operational-events`
-- health and readiness endpoints
-- failure console endpoints
-- dangerous-action protocol with explicit confirmation and reason
-- backup snapshot and restore-drill recording
+- health / ready endpoint
+- failure console API
+- dangerous action protocol
+- backup snapshot / restore drill 記録
 
-## Repo map
+## リポジトリ構成
 
-- `src/app/(app)`: product shell and app APIs
-- `src/app/(ops)`: ops shell and ops APIs
-- `src/app/(payload)`: Payload admin and API mounting
-- `src/core/collections`: shared collections
-- `src/core/globals`: singleton config
-- `src/core/access`: access rules and role checks
-- `src/core/billing`: Stripe catalog, sync, meters, and state helpers
-- `src/core/ops`: jobs, failures, health, bootstrap, recovery
-- `src/core/server`: Local API and server-side helpers
+- `src/app/(app)`: プロダクト画面と app API
+- `src/app/(ops)`: ops 画面と ops API
+- `src/app/(payload)`: Payload Admin と Payload API
+- `src/core/collections`: 共通 collection
+- `src/core/globals`: singleton 設定
+- `src/core/access`: access rule と role helper
+- `src/core/billing`: Stripe catalog / sync / meter / state helper
+- `src/core/ops`: jobs / failures / health / bootstrap / recovery
+- `src/core/server`: Local API と server helper
 
-## Quick start
+## クイックスタート
 
-### Prerequisites
+### 前提
 
 - Node.js 20.9+
 - npm
 - Docker Desktop
 
-### Local services
+### ローカル依存サービス
 
-`docker-compose.yml` provisions:
+`docker-compose.yml` で以下を立ち上げます。
 
-- Postgres at `localhost:5432`
-- Mailpit SMTP at `localhost:1025`, UI at `http://localhost:8025`
-- MinIO at `http://localhost:9000`, console at `http://localhost:9001`
-- Stripe CLI listener with `docker compose --profile stripe up stripe-cli`
+- Postgres: `localhost:5432`
+- Mailpit SMTP: `localhost:1025`
+- Mailpit UI: `http://localhost:8025`
+- MinIO API: `http://localhost:9000`
+- MinIO Console: `http://localhost:9001`
+- Stripe CLI: `docker compose --profile stripe up stripe-cli`
 
-### Setup
+### セットアップ
 
-1. Install dependencies:
+1. 依存を入れる
 
    ```bash
    npm install
    ```
 
-2. Start infra:
+2. ローカル infra を起動する
 
    ```bash
    npm run dev:infra
    ```
 
-3. Copy `.env.example` to `.env.local` and fill in at least:
+3. `.env.example` を `.env.local` にコピーし、最低限これを設定する
 
    - `DATABASE_URL`
    - `PAYLOAD_SECRET`
    - `NEXT_PUBLIC_SERVER_URL`
 
-4. Generate Payload types and import map:
+4. Payload の型と import map を生成する
 
    ```bash
    npm run generate:types
    npm run generate:importmap
    ```
 
-5. Run checks:
+5. 検証する
 
    ```bash
    npm run typecheck
    npm run lint
    ```
 
-6. Start the app:
+6. 開発サーバーを起動する
 
    ```bash
    npm run dev
    ```
 
-### Useful URLs
+### よく使う URL
 
 - app shell: `http://localhost:3000/app`
 - ops shell: `http://localhost:3000/ops`
 - admin: `http://localhost:3000/admin`
 - health: `http://localhost:3000/api/health`
-- readiness: `http://localhost:3000/api/ready`
+- ready: `http://localhost:3000/api/ready`
 
-## Environment contract
+## 環境変数
 
-### Required
+### 必須
 
 - `DATABASE_URL`
 - `PAYLOAD_SECRET`
@@ -189,7 +195,7 @@ The goal is simple: start each new product at the project-specific model and UI 
 - `S3_FORCE_PATH_STYLE`
 - `MINIO_CONSOLE_URL`
 
-### Stripe and billing
+### Stripe / Billing
 
 - `STRIPE_ENABLED`
 - `STRIPE_SECRET_KEY`
@@ -206,7 +212,7 @@ The goal is simple: start each new product at the project-specific model and UI 
 - `BILLING_DEFAULT_CURRENCY`
 - `BILLING_FALLBACK_STATUS`
 
-### Jobs, observability, and recovery
+### Jobs / Observability / Recovery
 
 - `JOBS_AUTORUN`
 - `JOBS_AUTORUN_CRON`
@@ -218,9 +224,9 @@ The goal is simple: start each new product at the project-specific model and UI 
 - `MEDIA_RETENTION_DAYS`
 - `RESTORE_DRILL_CADENCE_DAYS`
 
-## Role model
+## Role Model
 
-Platform roles:
+### Platform roles
 
 - `platform_owner`
 - `platform_admin`
@@ -229,7 +235,7 @@ Platform roles:
 - `platform_billing`
 - `platform_readonly`
 
-Tenant roles:
+### Tenant roles
 
 - `org_owner`
 - `org_admin`
@@ -238,37 +244,41 @@ Tenant roles:
 - `member`
 - `viewer`
 
-The rule is strict: platform roles unlock `/ops` and cross-tenant operations, tenant roles drive app behavior inside an organization. A user can hold both, but the memberships stay separate.
+ルールは単純です。
 
-Detailed role and capability mapping lives in [docs/role-matrix.md](docs/role-matrix.md).
+- platform role は `/ops` と cross-tenant な操作を開く
+- tenant role は organization 内の `/app` 体験を制御する
+- 同じ user が両方を持つことはあっても、role 判定は混ぜない
 
-## Access and Local API rules
+詳細は [docs/role-matrix.md](docs/role-matrix.md) にまとめています。
 
-- tenant boundaries are enforced in collection access rules
-- dangerous actions only happen through ops routes
-- soft delete and retention metadata are preferred over hard delete
-- versions and audit logs are mandatory for managed collections and globals
-- Payload Local API must run with request context for normal app behavior
-- `overrideAccess: true` is reserved for seed, migration, jobs, and internal maintenance flows
+## Access と Local API の設計ルール
 
-## Media policy
+- tenant boundary は collection access で強制する
+- dangerous action は ops route 経由でのみ実行する
+- hard delete より soft delete + retention metadata を優先する
+- managed collection / global は versions と audit を前提にする
+- 通常のアプリ挙動では Payload Local API に request context を渡す
+- `overrideAccess: true` は seed / migration / jobs / internal maintenance に限定する
 
-- visibility defaults to `private`
-- object keys are prefixed with `organization/<orgId>/...`
-- delivery flows through `/api/core/media/:id/download`
-- archive flows set `deletedAt`, `retentionState`, and `retentionUntil`
-- physical purge is intentionally deferred to infra and retention jobs
+## Media ポリシー
 
-## Billing flow
+- visibility の default は `private`
+- object key は `organization/<orgId>/...` 形式
+- 配信は `/api/core/media/:id/download` を通す
+- archive 時に `deletedAt`, `retentionState`, `retentionUntil` を持つ
+- 物理 purge は retention policy と infra 側の運用で行う
 
-1. Configure plan catalog in `billing-settings`
-2. Create checkout sessions with `POST /api/core/billing/checkout`
-3. Send customers to the Stripe portal with `POST /api/core/billing/portal`
-4. Receive signed Stripe webhooks at `POST /api/core/billing/webhook`
-5. Persist billing events and retry failures from ops or billing retry routes
-6. Recompute organization status, seat limits, and entitlements from synced subscription data
+## Billing フロー
 
-Billing route handlers shipped in core:
+1. `billing-settings` に plan catalog を定義する
+2. `POST /api/core/billing/checkout` で checkout session を作る
+3. `POST /api/core/billing/portal` で customer portal に送る
+4. `POST /api/core/billing/webhook` で signed webhook を受ける
+5. `billing-events` に保存し、失敗時は retry できるようにする
+6. subscription 状態から organization の billing status / seat / entitlement を同期する
+
+core に入っている billing routes:
 
 - `POST /api/core/billing/checkout`
 - `POST /api/core/billing/portal`
@@ -276,11 +286,11 @@ Billing route handlers shipped in core:
 - `POST /api/core/billing/webhook`
 - `POST /api/core/billing/events/:id/retry`
 
-See [docs/billing.md](docs/billing.md) for the full contract.
+詳細は [docs/billing.md](docs/billing.md) を見てください。
 
-## Jobs and queues
+## Jobs と Queue
 
-Named queues:
+用意している queue:
 
 - `emails`
 - `billing`
@@ -289,7 +299,7 @@ Named queues:
 - `ai`
 - `maintenance`
 
-Available task slugs:
+用意している task slug:
 
 - `deliver-email`
 - `retry-billing-event`
@@ -298,26 +308,26 @@ Available task slugs:
 - `ai-post-process`
 - `run-maintenance`
 
-Commands:
+コマンド:
 
 ```bash
 npm run jobs:run
 npm run jobs:handle-schedules
 ```
 
-For local development, run jobs inside the app process or via the Payload CLI. For production, dedicate a worker process or call the jobs endpoints from external cron.
+ローカルでは app 内または Payload CLI で回せます。本番では worker process を分けるか、外部 cron から jobs endpoint を叩く運用を想定しています。
 
-See [docs/ops.md](docs/ops.md) and [docs/billing.md](docs/billing.md) for retry and failure patterns.
+詳細は [docs/ops.md](docs/ops.md) と [docs/billing.md](docs/billing.md) にあります。
 
-## Ops protocol
+## Ops Protocol
 
-Ops routes are guarded by platform ops access. Dangerous actions require:
+ops routes は platform ops access を要求します。dangerous action には次が必須です。
 
-- explicit confirmation
-- a human-readable reason with at least 8 characters
-- audit and operational-event recording
+- 明示的な confirmation
+- 8 文字以上の reason
+- audit / operational event の記録
 
-Ops endpoints include:
+主な ops endpoints:
 
 - `GET /api/ops/failures`
 - `POST /api/ops/failures/:id/retry`
@@ -327,46 +337,46 @@ Ops endpoints include:
 - `POST /api/ops/recovery/restore-drill`
 - `POST /api/ops/bootstrap/manifest`
 
-## Versions, restore, and backups
+## Versions / Restore / Backup
 
-Payload versions are used for:
+Payload versions は次のために使います。
 
 - draft preview
 - autosave
 - change history
-- restore of managed application documents and globals
+- managed document / global の restore
 
-They are not a substitute for infrastructure backup.
+ただし、infra backup の代わりではありません。
 
-Infrastructure backup still owns:
+infra 側で持つべきもの:
 
-- Postgres backup and restore
-- object storage backup and restore
+- Postgres backup / restore
+- object storage backup / restore
 - secret rotation
-- restore drills at infra level
+- full-environment の restore drill
 
-See [docs/backup-restore.md](docs/backup-restore.md).
+詳しくは [docs/backup-restore.md](docs/backup-restore.md) を参照してください。
 
-## Starting a new project
+## 新規プロジェクトの立ち上げ
 
-Use the included bootstrap script:
+同梱の bootstrap script を使います。
 
 ```bash
 npm run bootstrap:project -- console "Studio99 Console"
 ```
 
-This creates:
+これで次が作られます。
 
 - `src/app/(app)/app/<projectKey>/page.tsx`
 - `src/app/api/<projectKey>/route.ts`
 - `src/projects/<projectKey>/README.md`
 - `docs/projects/<projectKey>.md`
 
-Then add project-specific collections, routes, and jobs while reusing core auth, billing, admin, ops, and shared settings.
+そのあと、project 固有の collection / route / jobs を足していきます。auth、admin、billing、feature flags、uploads、ops は core をそのまま使います。
 
-See [docs/bootstrap.md](docs/bootstrap.md).
+詳細は [docs/bootstrap.md](docs/bootstrap.md) を見てください。
 
-## Verification commands
+## 検証コマンド
 
 ```bash
 npm run generate:types
@@ -376,7 +386,7 @@ npm run lint
 npm run build
 ```
 
-## Companion docs
+## 関連ドキュメント
 
 - [docs/architecture.md](docs/architecture.md)
 - [docs/role-matrix.md](docs/role-matrix.md)
