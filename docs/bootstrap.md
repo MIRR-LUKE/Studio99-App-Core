@@ -1,43 +1,43 @@
-# Project Bootstrap
+# プロジェクト bootstrap
 
-Core ships a project bootstrap script so new products start from a predictable skeleton.
+core には、新規プロダクトを一定の形で始めるための bootstrap script が入っています。
 
-## Command
+## コマンド
 
 ```bash
 npm run bootstrap:project -- <projectKey> "<Project Name>"
 ```
 
-Example:
+例:
 
 ```bash
 npm run bootstrap:project -- console "Studio99 Console"
 ```
 
-## Generated files
+## 生成されるファイル
 
 - `src/app/(app)/app/<projectKey>/page.tsx`
 - `src/app/api/<projectKey>/route.ts`
 - `src/projects/<projectKey>/README.md`
 - `docs/projects/<projectKey>.md`
 
-## Intended workflow
+## 想定フロー
 
-1. bootstrap the project shell
-2. add project collections and hooks
-3. add project routes and components
-4. wire any project-specific jobs
-5. reuse core auth, admin, billing, feature flags, uploads, and ops
+1. project shell を bootstrap する
+2. project 固有 collection と hook を足す
+3. project 固有 route と component を足す
+4. 必要なら project 固有 job をつなぐ
+5. auth、admin、billing、feature flags、uploads、ops は core を再利用する
 
 ## Bootstrap manifest API
 
-Ops can request a plan-only manifest through:
+ops から plan-only な manifest を取れます。
 
 ```text
 POST /api/ops/bootstrap/manifest
 ```
 
-Body:
+body:
 
 ```json
 {
@@ -46,4 +46,4 @@ Body:
 }
 ```
 
-The response describes target routes, collections, and project docs paths before any files are created.
+レスポンスには、まだファイルを作る前の段階で target route、collection、project docs path が入ります。

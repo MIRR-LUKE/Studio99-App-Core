@@ -1,44 +1,44 @@
-# Backup and Restore
+# バックアップと復旧
 
-## Core principle
+## 基本原則
 
-Payload versions are not the same thing as infrastructure backup.
+Payload versions は infrastructure backup と同じものではありません。
 
-## Payload-managed recovery
+## Payload 側で担う復旧
 
-Use Payload versions for:
+Payload versions は次の用途に使います。
 
 - content history
 - draft preview
 - singleton restore
-- short-horizon application rollback
+- 短い時間軸での application rollback
 
-Managed collections and globals in core enable versions where recovery and audit value are high.
+core の managed collection / global では、recovery と audit の価値が高いものに versions を有効化しています。
 
-## Infrastructure-managed recovery
+## Infrastructure 側で担う復旧
 
-Keep these outside Payload versions:
+次は Payload versions の外で持ちます。
 
-- Postgres snapshots and point-in-time recovery
+- Postgres snapshot と point-in-time recovery
 - object storage backup
-- secret and credential rotation
-- restore drills for full-environment rebuild
+- secret / credential rotation
+- 環境全体を戻すための restore drill
 
-## Media retention
+## Media 保持
 
-Media records are archived first:
+media record は先に archive します。
 
 - `deletedAt`
 - `retentionState`
 - `retentionUntil`
 
-Physical purge should happen only after retention policy allows it.
+物理 purge は retention policy を満たした後にだけ実行します。
 
-## Ops recording
+## Ops 記録
 
-The core exposes two ops actions:
+core では 2 つの ops action を持っています。
 
-- backup snapshot recording
-- restore drill recording
+- backup snapshot の記録
+- restore drill の記録
 
-These create `operational-events` entries so the team has an application-level audit trail for recovery work.
+これらは `operational-events` を作り、recovery 作業の application-level な audit trail を残します。

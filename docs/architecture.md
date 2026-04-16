@@ -1,28 +1,28 @@
-# Architecture
+# アーキテクチャ
 
-Studio99 Application Core splits the product into three route surfaces:
+Studio99 Application Core は、プロダクトを 3 つの面に分けて構成します。
 
-- `/app`: project-facing product UI
-- `/ops`: platform operations UI and protected control routes
-- `/admin`: Payload admin for shared and project collections
+- `/app`: 各プロジェクトのプロダクト UI
+- `/ops`: platform operations UI と保護された control route
+- `/admin`: Payload Admin による shared / project collection 管理
 
-## System shape
+## 全体像
 
-- Next.js App Router hosts UI and route handlers
-- Payload owns schema, auth, admin, Local API, versions, and jobs
-- Postgres stores primary application state
-- object storage stores uploads and export artifacts
-- Stripe remains billing source of truth
+- Next.js App Router が UI と Route Handler を持つ
+- Payload が schema、auth、admin、Local API、versions、jobs を持つ
+- Postgres が primary application state を持つ
+- object storage が upload と export artifact を持つ
+- Stripe が billing の正本であり続ける
 
-## Design rules
+## 設計ルール
 
-1. Shared concerns belong in `src/core`
-2. Product-specific behavior belongs in project routes, collections, and components
-3. Heavy or retryable work goes through jobs
-4. Tenant boundaries are enforced in access functions, not only in UI
-5. Dangerous operations must pass through the ops API layer
+1. 共通関心は `src/core` に置く
+2. プロジェクト固有の挙動は project route / collection / component に置く
+3. 重い処理、再試行が必要な処理は jobs に流す
+4. tenant boundary は UI だけでなく access function で強制する
+5. dangerous operation は必ず ops API layer を通す
 
-## Shared collections
+## 共通 collections
 
 - `users`
 - `organizations`
@@ -37,7 +37,7 @@ Studio99 Application Core splits the product into three route surfaces:
 - `support-notes`
 - `operational-events`
 
-## Shared globals
+## 共通 globals
 
 - `app-settings`
 - `ops-settings`
@@ -45,9 +45,9 @@ Studio99 Application Core splits the product into three route surfaces:
 - `billing-settings`
 - `email-templates`
 
-## Reliability split
+## Reliability の責務分離
 
-- Payload versions restore application documents and globals
-- backup and restore of Postgres, object storage, and secrets stay infra-owned
-- media is archived with retention metadata before any physical purge
-- Stripe webhook events are stored before processing to support idempotency and retry
+- Payload versions は application document / global の restore に使う
+- Postgres / object storage / secrets の backup / restore は infra 側が持つ
+- media は retention metadata を付けて archive してから purge する
+- Stripe webhook event は先に保存してから処理し、idempotency と retry を担保する

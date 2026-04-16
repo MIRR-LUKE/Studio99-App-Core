@@ -1,30 +1,30 @@
-# Role Matrix
+# ロールマトリクス
 
-## Platform roles
+## Platform ロール
 
-| Role | Primary scope | Capabilities |
+| Role | 主な責務 | Capability |
 | --- | --- | --- |
-| `platform_owner` | full platform | `platform.read`, `platform.manage`, `ops.access`, `billing.manage`, `dangerous.write` |
-| `platform_admin` | platform administration | `platform.read`, `platform.manage`, `ops.access`, `billing.manage` |
+| `platform_owner` | platform 全体管理 | `platform.read`, `platform.manage`, `ops.access`, `billing.manage`, `dangerous.write` |
+| `platform_admin` | platform 管理 | `platform.read`, `platform.manage`, `ops.access`, `billing.manage` |
 | `platform_operator` | operations | `platform.read`, `ops.access` |
-| `platform_support` | support and ops | `platform.read`, `ops.access`, `support.manage` |
-| `platform_billing` | billing administration | `platform.read`, `billing.manage` |
-| `platform_readonly` | platform visibility | `platform.read` |
+| `platform_support` | support / ops | `platform.read`, `ops.access`, `support.manage` |
+| `platform_billing` | billing 管理 | `platform.read`, `billing.manage` |
+| `platform_readonly` | platform 可視化 | `platform.read` |
 
-## Organization roles
+## Organization ロール
 
-| Role | Primary scope | Capabilities |
+| Role | 主な責務 | Capability |
 | --- | --- | --- |
-| `org_owner` | tenant ownership | `organization.read`, `content.write`, `team.manage`, `billing.read`, `organization.delete` |
-| `org_admin` | tenant administration | `organization.read`, `content.write`, `team.manage`, `billing.read` |
-| `manager` | team management | `organization.read`, `content.write`, `team.manage` |
-| `editor` | content authoring | `organization.read`, `content.write` |
-| `member` | standard membership | `organization.read` |
-| `viewer` | read-only membership | `organization.read` |
+| `org_owner` | tenant owner | `organization.read`, `content.write`, `team.manage`, `billing.read`, `organization.delete` |
+| `org_admin` | tenant 管理 | `organization.read`, `content.write`, `team.manage`, `billing.read` |
+| `manager` | team 管理 | `organization.read`, `content.write`, `team.manage` |
+| `editor` | content 編集 | `organization.read`, `content.write` |
+| `member` | 通常利用 | `organization.read` |
+| `viewer` | read-only 利用 | `organization.read` |
 
-## Operational rules
+## 運用ルール
 
-- platform roles gate `/ops` and cross-tenant visibility
-- tenant roles gate `/app` data and organization-scoped operations
-- the same user may carry both role families, but the checks stay distinct
-- collection access and admin visibility use the same role helpers so the UI and API stay aligned
+- platform role は `/ops` と cross-tenant visibility を開く
+- tenant role は `/app` のデータと organization-scoped operation を開く
+- 同じ user が両方の role family を持つことはできるが、判定は分離する
+- collection access と admin visibility は同じ role helper を使い、UI と API をずらさない

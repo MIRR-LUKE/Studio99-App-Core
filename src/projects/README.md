@@ -1,5 +1,5 @@
-# Projects
+# プロジェクト
 
-Each product should keep its project-specific collections, jobs, and implementation notes under `src/projects/<projectKey>`.
+各プロダクトは、project 固有の collection、job、実装メモを `src/projects/<projectKey>` 配下に置きます。
 
-The shared platform concerns stay in `src/core`.
+shared platform concern は `src/core` 側に残します。

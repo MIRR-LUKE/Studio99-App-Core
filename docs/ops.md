@@ -1,19 +1,19 @@
-# Operations
+# 運用
 
-The ops surface is intentionally separate from the product surface.
+ops surface は product surface から明確に分離します。
 
-## UI
+## 画面
 
 - `GET /ops`
 
-The ops screen summarizes:
+ops 画面では次を要約します。
 
 - queue inventory
-- failure counts
+- failure count
 - service health
 - recovery policy
 
-## APIs
+## API
 
 - `GET /api/ops/failures`
 - `POST /api/ops/failures/:id/retry`
@@ -23,35 +23,35 @@ The ops screen summarizes:
 - `POST /api/ops/recovery/restore-drill`
 - `POST /api/ops/bootstrap/manifest`
 
-## Dangerous actions
+## 危険操作
 
-Backup snapshots and restore drills require:
+backup snapshot や restore drill には次が必須です。
 
 - `confirm: true`
-- `reason` with at least 8 non-whitespace characters
+- 空白を除いて 8 文字以上の `reason`
 
-This keeps destructive or high-trust actions explicit and auditable.
+これにより、高信頼な操作を明示的かつ監査可能に保ちます。
 
-## Failures view
+## 障害一覧
 
-The failures API aggregates:
+failures API は次を集約します。
 
-- failed Payload jobs
-- failed billing events
-- failed operational events
+- failed Payload job
+- failed billing event
+- failed operational event
 
-That gives ops one place to inspect and retry background failures.
+ops 側から background failure を一箇所で見て retry できるようにしています。
 
-## Health and observability
+## ヘルスチェック / 可観測性
 
 - `GET /api/health`
 - `GET /api/ready`
-- request IDs are injected by middleware through `x-request-id`
-- structured logging helpers live in `src/core/ops/logger.ts`
+- request ID は middleware が `x-request-id` に注入する
+- structured logging helper は `src/core/ops/logger.ts` に置く
 
-## Queue model
+## Queue モデル
 
-Core queues:
+core queue:
 
 - `emails`
 - `billing`
@@ -60,8 +60,8 @@ Core queues:
 - `ai`
 - `maintenance`
 
-Recommended production shape:
+推奨する本番構成:
 
-- app deployment serves UI and request/response work
-- one or more worker processes run `npm run jobs:run`
-- schedule handling runs from cron or a dedicated worker via `npm run jobs:handle-schedules`
+- app deployment が UI と request/response を担当する
+- 1 つ以上の worker process が `npm run jobs:run` を回す
+- schedule handling は cron または専用 worker から `npm run jobs:handle-schedules` を回す

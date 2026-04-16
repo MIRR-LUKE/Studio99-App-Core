@@ -4,7 +4,7 @@ import path from 'node:path'
 const [, , rawProjectKey, rawName] = process.argv
 
 if (!rawProjectKey) {
-  console.error('Usage: npm run bootstrap:project -- <projectKey> "<Project Name>"')
+  console.error('使い方: npm run bootstrap:project -- <projectKey> "<Project Name>"')
   process.exit(1)
 }
 
@@ -20,7 +20,7 @@ const projectKey = normalizeProjectKey(rawProjectKey)
 const projectName = rawName?.trim() || projectKey
 
 if (!projectKey) {
-  console.error('projectKey must contain at least one alphanumeric character.')
+  console.error('projectKey には英数字を少なくとも 1 文字含めてください。')
   process.exit(1)
 }
 
@@ -37,7 +37,7 @@ const targets = [
     <section>
       <p>${projectName}</p>
       <h1>${projectName} workspace</h1>
-      <p>Build the project-specific product surface here on top of Studio99 Application Core.</p>
+      <p>ここに Studio99 Application Core の上で project 固有のプロダクト画面を作っていきます。</p>
     </section>
   )
 }
@@ -64,26 +64,26 @@ export async function GET() {
 - primary route: \`/app/${projectKey}\`
 - api route: \`/api/${projectKey}\`
 
-Add project-specific collections, jobs, UI, and rollout notes here.
+ここに project 固有の collection、job、UI、rollout note を追加します。
 `,
   },
   {
     file: path.join(root, 'docs', 'projects', `${projectKey}.md`),
     contents: `# ${projectName}
 
-## Scope
+## 概要
 
 - project key: \`${projectKey}\`
 - route: \`/app/${projectKey}\`
 - api route: \`/api/${projectKey}\`
 
-## Checklist
+## チェックリスト
 
-- define collections
-- define jobs
-- define rollout plan
-- connect feature flags
-- document billing implications
+- collection を定義する
+- job を定義する
+- rollout plan を定義する
+- feature flag を接続する
+- billing 影響を文書化する
 `,
   },
 ]

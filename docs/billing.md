@@ -1,81 +1,81 @@
-# Billing
+# 課金
 
-Stripe is the billing source of truth. The app mirrors billing state into core collections so access, entitlements, and ops tooling can run locally and deterministically.
+Stripe を billing の正本とし、core 側には access 判定、entitlement 判定、ops 運用に必要な状態だけを同期します。
 
-## Shared records
+## 共有レコード
 
-- `billing-settings`: plan catalog, API version, grace period, retry policy
-- `billing-customers`: Stripe customer linkage per organization
-- `billing-subscriptions`: synced subscription state, seat counts, entitlements
-- `billing-events`: webhook and meter event ledger with retry state
+- `billing-settings`: plan catalog、API version、grace period、retry policy
+- `billing-customers`: organization ごとの Stripe customer 連携
+- `billing-subscriptions`: 同期済み subscription state、seat 数、entitlement
+- `billing-events`: webhook / meter event ledger と retry state
 
-## Flows
+## フロー
 
 ### Checkout
 
 `POST /api/core/billing/checkout`
 
-Inputs:
+入力:
 
 - `priceId`
 - optional `organizationId`
 - optional `quantity`
 
-Behavior:
+挙動:
 
-- verifies the caller can manage billing for the active organization
-- ensures a Stripe customer exists
-- creates a subscription checkout session
-- writes organization metadata into Stripe session metadata
+- 現在の organization に対して billing 管理権限があるか確認する
+- Stripe customer がなければ作る
+- subscription checkout session を作る
+- Stripe session metadata に organization 情報を書き込む
 
-### Customer portal
+### Customer Portal
 
 `POST /api/core/billing/portal`
 
-Behavior:
+挙動:
 
-- resolves the managed organization
-- finds its Stripe customer
-- creates a Billing Portal session
+- 対象 organization を解決する
+- 対応する Stripe customer を探す
+- Billing Portal session を作る
 
-### Webhooks
+### Webhook
 
 `POST /api/core/billing/webhook`
 
-Behavior:
+挙動:
 
-- verifies Stripe signature
-- enforces event idempotency on `stripeEventId`
-- persists the raw event into `billing-events`
-- processes checkout, invoice, and subscription events
-- marks failed processing for later retry
+- Stripe signature を検証する
+- `stripeEventId` 単位で idempotency を強制する
+- raw event を `billing-events` に保存する
+- checkout / invoice / subscription event を処理する
+- 失敗時は retry 可能な状態で保存する
 
-### Meter events
+### Meter Event
 
 `POST /api/core/billing/meter`
 
-Behavior:
+挙動:
 
-- records idempotent usage events into `billing-events`
-- preserves a ledger even when downstream processing is deferred
+- idempotent な usage event を `billing-events` に記録する
+- 後段処理を遅らせる場合でも ledger は先に残す
 
-## Access effects
+## Access への反映
 
 - organization `billingStatus`
 - `gracePeriodEndsAt`
 - `seatLimit`
 - `billingEntitlements`
 
-Seat availability is computed from active memberships versus synced subscription quantity.
+seat の利用可否は、active membership 数と同期済み subscription quantity を比較して判定します。
 
-## Retry paths
+## Retry 導線
 
-- billing-specific: `POST /api/core/billing/events/:id/retry`
+- billing 専用: `POST /api/core/billing/events/:id/retry`
 - ops console: `POST /api/ops/failures/:id/retry`
 
-## Plan catalog fields
+## Plan catalog の主な項目
 
-Each plan in `billing-settings` can define:
+`billing-settings` の各 plan では次を定義できます。
 
 - `planKey`
 - `label`
