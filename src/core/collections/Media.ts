@@ -1,14 +1,9 @@
-import path from 'node:path'
-
 import type { CollectionConfig } from 'payload'
 
 export const Media: CollectionConfig = {
   slug: 'media',
   timestamps: true,
-  upload: {
-    staticDir: path.resolve(process.cwd(), 'media'),
-    staticURL: '/media',
-  },
+  upload: true,
   admin: {
     useAsTitle: 'filename',
   },

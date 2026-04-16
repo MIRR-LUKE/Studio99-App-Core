@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "generate:types": "payload generate:types",
     "generate:importmap": "payload generate:importmap",
     "payload": "payload"
@@ -28,6 +29,8 @@
     "sharp": "^0.34.0"
   },
   "devDependencies": {
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.2.4",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

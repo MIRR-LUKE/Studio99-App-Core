@@ -26,5 +26,5 @@ Next.js + Payload を土台にした Studio99 の共通アプリ基盤です。
 ## 補足
 
 - `typecheck` は TypeScript の文法と参照を早めに落とすための最初の安全網です
-- `lint` は Next.js の標準 lint フローを使います。ESLint 設定ファイルを追加したら CI でも自動で回るようにしています
+- `lint` は Next.js 16 に合わせて ESLint CLI を使います
 - GitHub Actions では型チェックとビルドをまず回す構成にしています
