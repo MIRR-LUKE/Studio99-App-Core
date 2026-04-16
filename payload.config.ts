@@ -59,6 +59,9 @@ export default buildConfig({
   plugins: [
     multiTenantPlugin({
       tenantsSlug: Organizations.slug,
+      cleanupAfterTenantDelete: false,
+      useTenantsCollectionAccess: false,
+      useTenantsListFilter: false,
       userHasAccessToAllTenants,
       tenantsArrayField: {
         includeDefaultField: false,
@@ -66,10 +69,6 @@ export default buildConfig({
         arrayTenantFieldName: 'organization',
       },
       collections: {
-        [Organizations.slug]: {
-          useTenantsCollectionAccess: false,
-          useTenantsListFilter: false,
-        },
         [Memberships.slug]: {
           customTenantField: true,
           useTenantAccess: false,

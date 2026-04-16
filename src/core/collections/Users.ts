@@ -18,6 +18,35 @@ export const Users: CollectionConfig = {
         tenantsArrayFieldName: 'organizations',
         tenantsArrayTenantFieldName: 'organization',
         tenantsCollectionSlug: 'organizations',
+        rowFields: [
+          {
+            name: 'role',
+            type: 'select',
+            defaultValue: 'member',
+            options: [
+              { label: 'Owner', value: 'org_owner' },
+              { label: 'Admin', value: 'org_admin' },
+              { label: 'Manager', value: 'manager' },
+              { label: 'Editor', value: 'editor' },
+              { label: 'Member', value: 'member' },
+              { label: 'Viewer', value: 'viewer' },
+            ],
+          },
+          {
+            name: 'status',
+            type: 'select',
+            defaultValue: 'active',
+            options: [
+              { label: 'Invited', value: 'invited' },
+              { label: 'Active', value: 'active' },
+              { label: 'Suspended', value: 'suspended' },
+            ],
+          },
+          {
+            name: 'joinedAt',
+            type: 'date',
+          },
+        ],
       }),
       label: 'Organizations',
     },
