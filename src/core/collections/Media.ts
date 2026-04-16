@@ -99,6 +99,11 @@ export const Media: CollectionConfig = {
       type: 'date',
     },
     {
+      name: 'deletedBy',
+      type: 'relationship',
+      relationTo: 'users',
+    },
+    {
       name: 'retentionUntil',
       type: 'date',
     },

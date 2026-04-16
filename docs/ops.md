@@ -32,6 +32,8 @@ backup snapshot や restore drill には次が必須です。
 
 これにより、高信頼な操作を明示的かつ監査可能に保ちます。
 
+backup snapshot の metadata は `backup-snapshots` collection に保存され、`operational-events` と一緒に追跡できます。
+
 ## 障害一覧
 
 failures API は次を集約します。

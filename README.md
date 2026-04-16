@@ -55,6 +55,7 @@ Studio99 Application Core は、Studio99 の各プロダクトを素早く作る
 - `media` collection
 - organization prefix つき object key
 - `/api/core/media/:id/download` 経由の guarded delivery
+- `/api/core/media/:id/restore` 経由の restore 導線
 - archive + retention metadata による soft delete 運用
 
 ### Billing
@@ -62,6 +63,7 @@ Studio99 Application Core は、Studio99 の各プロダクトを素早く作る
 - `billing-customers`
 - `billing-subscriptions`
 - `billing-events`
+- `backup-snapshots`
 - checkout / portal / webhook ingest / retry / meter ingestion
 - entitlements / seat limit / grace period / billing access helper
 
@@ -69,6 +71,7 @@ Studio99 Application Core は、Studio99 の各プロダクトを素早く作る
 
 - `support-notes`
 - `operational-events`
+- `backup-snapshots`
 - health / ready endpoint
 - failure console API
 - dangerous action protocol
@@ -376,6 +379,9 @@ npm run bootstrap:project -- console "Studio99 Console"
 
 詳細は [docs/bootstrap.md](docs/bootstrap.md) を見てください。
 
+初回セットアップの順番は [docs/first-run.md](docs/first-run.md) にまとめています。  
+軽い見本として `example` project も同梱しています。
+
 ## 検証コマンド
 
 ```bash
@@ -389,8 +395,15 @@ npm run build
 ## 関連ドキュメント
 
 - [docs/architecture.md](docs/architecture.md)
+- [docs/naming.md](docs/naming.md)
+- [docs/auth.md](docs/auth.md)
+- [docs/migrations.md](docs/migrations.md)
+- [docs/review-policy.md](docs/review-policy.md)
+- [docs/adr/README.md](docs/adr/README.md)
 - [docs/role-matrix.md](docs/role-matrix.md)
 - [docs/billing.md](docs/billing.md)
 - [docs/ops.md](docs/ops.md)
+- [docs/security.md](docs/security.md)
 - [docs/backup-restore.md](docs/backup-restore.md)
+- [docs/first-run.md](docs/first-run.md)
 - [docs/bootstrap.md](docs/bootstrap.md)

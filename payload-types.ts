@@ -75,6 +75,7 @@ export interface Config {
     'audit-logs': AuditLog;
     'feature-flags': FeatureFlag;
     'billing-customers': BillingCustomer;
+    'backup-snapshots': BackupSnapshot;
     'billing-subscriptions': BillingSubscription;
     'billing-events': BillingEvent;
     'support-notes': SupportNote;
@@ -95,6 +96,7 @@ export interface Config {
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'feature-flags': FeatureFlagsSelect<false> | FeatureFlagsSelect<true>;
     'billing-customers': BillingCustomersSelect<false> | BillingCustomersSelect<true>;
+    'backup-snapshots': BackupSnapshotsSelect<false> | BackupSnapshotsSelect<true>;
     'billing-subscriptions': BillingSubscriptionsSelect<false> | BillingSubscriptionsSelect<true>;
     'billing-events': BillingEventsSelect<false> | BillingEventsSelect<true>;
     'support-notes': SupportNotesSelect<false> | SupportNotesSelect<true>;
@@ -331,6 +333,7 @@ export interface Media {
   purpose?: ('asset' | 'export' | 'backup') | null;
   retentionState?: ('active' | 'scheduled_for_purge' | 'purged') | null;
   deletedAt?: string | null;
+  deletedBy?: (number | null) | User;
   retentionUntil?: string | null;
   uploadedBy?: (number | null) | User;
   updatedAt: string;
@@ -419,6 +422,38 @@ export interface BillingCustomer {
     | number
     | boolean
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "backup-snapshots".
+ */
+export interface BackupSnapshot {
+  id: number;
+  snapshotType?: ('full_environment' | 'database' | 'object_storage' | 'tenant' | 'restore_drill') | null;
+  scopeType?: ('platform' | 'organization' | 'project') | null;
+  scopeId?: string | null;
+  status?: ('available' | 'failed' | 'expired') | null;
+  snapshotAt: string;
+  retentionUntil?: string | null;
+  artifactUri?: string | null;
+  storageKey?: string | null;
+  checksum?: string | null;
+  sizeBytes?: number | null;
+  reason?: string | null;
+  summary: string;
+  notes?: string | null;
+  detail?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  recordedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -527,6 +562,7 @@ export interface OperationalEvent {
         | 'job_failure'
         | 'webhook_failure'
         | 'backup_snapshot'
+        | 'media_restore'
         | 'restore_drill'
         | 'maintenance_action'
         | 'bootstrap_manifest'
@@ -735,6 +771,10 @@ export interface PayloadLockedDocument {
         value: number | BillingCustomer;
       } | null)
     | ({
+        relationTo: 'backup-snapshots';
+        value: number | BackupSnapshot;
+      } | null)
+    | ({
         relationTo: 'billing-subscriptions';
         value: number | BillingSubscription;
       } | null)
@@ -940,6 +980,7 @@ export interface MediaSelect<T extends boolean = true> {
   purpose?: T;
   retentionState?: T;
   deletedAt?: T;
+  deletedBy?: T;
   retentionUntil?: T;
   uploadedBy?: T;
   updatedAt?: T;
@@ -1001,6 +1042,29 @@ export interface BillingCustomersSelect<T extends boolean = true> {
   currency?: T;
   taxStatus?: T;
   metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "backup-snapshots_select".
+ */
+export interface BackupSnapshotsSelect<T extends boolean = true> {
+  snapshotType?: T;
+  scopeType?: T;
+  scopeId?: T;
+  status?: T;
+  snapshotAt?: T;
+  retentionUntil?: T;
+  artifactUri?: T;
+  storageKey?: T;
+  checksum?: T;
+  sizeBytes?: T;
+  reason?: T;
+  summary?: T;
+  notes?: T;
+  detail?: T;
+  recordedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }

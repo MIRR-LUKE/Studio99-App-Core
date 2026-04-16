@@ -9,6 +9,7 @@ import { resolveDocumentId } from '../utils/ids'
 
 type MediaMutation = {
   deletedAt?: null | string
+  deletedBy?: null | number | string | { id?: null | number | string }
   deliveryUrl?: null | string
   filename?: null | string
   id: number | string
@@ -58,6 +59,7 @@ export const applyMediaStoragePolicy: CollectionBeforeChangeHook<MediaMutation> 
   if (!nextData.deletedAt && originalDoc?.deletedAt) {
     nextData.retentionState = 'active'
     nextData.retentionUntil = null
+    nextData.deletedBy = null
   }
 
   if (!nextData.retentionState) {

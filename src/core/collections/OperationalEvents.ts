@@ -44,6 +44,7 @@ export const OperationalEvents: CollectionConfig = {
         { label: 'Job failure', value: 'job_failure' },
         { label: 'Webhook failure', value: 'webhook_failure' },
         { label: 'Backup snapshot', value: 'backup_snapshot' },
+        { label: 'Media restore', value: 'media_restore' },
         { label: 'Restore drill', value: 'restore_drill' },
         { label: 'Maintenance action', value: 'maintenance_action' },
         { label: 'Bootstrap manifest', value: 'bootstrap_manifest' },

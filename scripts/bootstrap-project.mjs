@@ -4,7 +4,7 @@ import path from 'node:path'
 const [, , rawProjectKey, rawName] = process.argv
 
 if (!rawProjectKey) {
-  console.error('使い方: npm run bootstrap:project -- <projectKey> "<Project Name>"')
+  console.error('使い方: npm run bootstrap:project -- <projectKey> "<プロジェクト名>"')
   process.exit(1)
 }
 
@@ -36,8 +36,8 @@ const targets = [
   return (
     <section>
       <p>${projectName}</p>
-      <h1>${projectName} workspace</h1>
-      <p>ここに Studio99 Application Core の上で project 固有のプロダクト画面を作っていきます。</p>
+      <h1>${projectName} ワークスペース</h1>
+      <p>ここに Studio99 Application Core の上で project 固有の画面と機能を積み上げていきます。</p>
     </section>
   )
 }
@@ -61,10 +61,40 @@ export async function GET() {
     contents: `# ${projectName}
 
 - project key: \`${projectKey}\`
-- primary route: \`/app/${projectKey}\`
+- main route: \`/app/${projectKey}\`
 - api route: \`/api/${projectKey}\`
 
 ここに project 固有の collection、job、UI、rollout note を追加します。
+`,
+  },
+  {
+    file: path.join(root, 'src', 'projects', projectKey, 'project.config.ts'),
+    contents: `export const projectConfig = {
+  billing: {
+    note: 'この project の billing 前提と entitlement の前提を書きます。',
+    planKey: '${projectKey}-starter',
+  },
+  featureFlags: ['${projectKey}-beta', '${projectKey}-ops-preview'],
+  key: '${projectKey}',
+  name: '${projectName}',
+}
+`,
+  },
+  {
+    file: path.join(root, 'src', 'projects', projectKey, 'feature-flags.ts'),
+    contents: `export const projectFeatureFlags = {
+  beta: '${projectKey}-beta',
+  opsPreview: '${projectKey}-ops-preview',
+}
+`,
+  },
+  {
+    file: path.join(root, 'src', 'projects', projectKey, 'billing-note.md'),
+    contents: `# ${projectName} billing メモ
+
+- planKey: \`${projectKey}-starter\`
+- billing の前提と entitlement の対応を書きます
+- Stripe catalog の変更は core の \`billing-settings\` にも反映します
 `,
   },
   {
@@ -84,6 +114,15 @@ export async function GET() {
 - rollout plan を定義する
 - feature flag を接続する
 - billing 影響を文書化する
+`,
+  },
+  {
+    file: path.join(root, 'docs', 'projects', `${projectKey}-billing.md`),
+    contents: `# ${projectName} billing メモ
+
+- planKey: \`${projectKey}-starter\`
+- 料金・権限・seat 数の対応は core 側の billing catalog に合わせる
+- 追加の課金条件は project note にのみ置き、core へは contract だけを返す
 `,
   },
 ]

@@ -12,6 +12,7 @@ import { EmailTemplates } from './src/core/globals/EmailTemplates'
 import { LegalTexts } from './src/core/globals/LegalTexts'
 import { OpsSettings } from './src/core/globals/OpsSettings'
 import { AuditLogs } from './src/core/collections/AuditLogs'
+import { BackupSnapshots } from './src/core/collections/BackupSnapshots'
 import { BillingCustomers } from './src/core/collections/BillingCustomers'
 import { BillingEvents } from './src/core/collections/BillingEvents'
 import { BillingSubscriptions } from './src/core/collections/BillingSubscriptions'
@@ -62,6 +63,7 @@ export default buildConfig({
     AuditLogs,
     FeatureFlags,
     BillingCustomers,
+    BackupSnapshots,
     BillingSubscriptions,
     BillingEvents,
     SupportNotes,

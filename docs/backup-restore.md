@@ -1,44 +1,126 @@
 # バックアップと復旧
 
-## 基本原則
+Studio99 Application Core では、Payload versions と infrastructure backup を別物として扱います。
 
-Payload versions は infrastructure backup と同じものではありません。
+## 何をどこで守るか
 
-## Payload 側で担う復旧
+### Payload 側
 
-Payload versions は次の用途に使います。
+Payload versions は application-level の復旧に使います。
 
 - content history
 - draft preview
 - singleton restore
 - 短い時間軸での application rollback
 
-core の managed collection / global では、recovery と audit の価値が高いものに versions を有効化しています。
+### Infra 側
 
-## Infrastructure 側で担う復旧
+infra backup は本番復旧の正本です。
 
-次は Payload versions の外で持ちます。
-
-- Postgres snapshot と point-in-time recovery
-- object storage backup
+- PostgreSQL の base backup
+- WAL archive による PITR
+- object storage の snapshot / sync
 - secret / credential rotation
-- 環境全体を戻すための restore drill
+- environment restore drill
 
-## Media 保持
+## Backup snapshot metadata
 
-media record は先に archive します。
+backup snapshot の metadata は `backup-snapshots` collection に保存します。
 
-- `deletedAt`
-- `retentionState`
+主な項目は次です。
+
+- `snapshotType`
+- `scopeType`
+- `scopeId`
+- `status`
+- `snapshotAt`
 - `retentionUntil`
+- `artifactUri`
+- `storageKey`
+- `checksum`
+- `sizeBytes`
+- `reason`
+- `summary`
+- `detail`
 
-物理 purge は retention policy を満たした後にだけ実行します。
+ops route から記録した snapshot は、`operational-events` にも残ります。  
+これにより、バックアップの記録と運用イベントの両方を辿れます。
+
+## Retention matrix
+
+| 対象 | 標準保持 | 備考 |
+| --- | --- | --- |
+| `backup-snapshots` | `BACKUP_RETENTION_DAYS` | 監査と復旧証跡用 |
+| `operational-events` | 長期保持推奨 | 失敗 / 復旧 / bootstrap の追跡用 |
+| `media` archive metadata | `MEDIA_RETENTION_DAYS` | 物理 purge は別ジョブ |
+| `versions` | 要件に応じて個別設定 | restore と history の両立を優先 |
+| `billing-events` | 会計要件に応じて保持 | Stripe event の replay 検証に使う |
+
+## pg_dump の扱い
+
+`pg_dump` は export 用の一貫した dump を取るときに使います。
+
+推奨イメージは次です。
+
+```bash
+pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges -f backup.dump
+```
+
+運用ルール:
+
+- 毎日の運用バックアップの単独手段にしない
+- restore drill で復元確認を行う
+- dump の保存先と retention を明示する
+- 生成した artifact は `backup-snapshots` に記録する
+
+## PITR
+
+PITR は `base backup + WAL archive` を前提にします。
+
+最低限の流れ:
+
+1. base backup を取得する
+2. WAL archive を別経路で保持する
+3. 復旧時点を指定する
+4. DB を起動し直す
+5. app の health / ready を確認する
+
+PITR の本番前提は、データベース基盤側の責務です。  
+この repo では、手順と証跡を `docs/` と `backup-snapshots` で残します。
+
+## Restore drill
+
+restore drill は、実際に戻せるかを定期確認するための手順です。
+
+### 実行のしかた
+
+- `POST /api/ops/recovery/restore-drill`
+- reason と confirmation を必須にする
+- 実行結果を `operational-events` に残す
+- 必要なら `backup-snapshots` に drill metadata を残す
+
+### 確認項目
+
+- database が戻る
+- media metadata が復元できる
+- `/api/health` が `ok` を返す
+- `/api/ready` が `ready: true` を返す
+- 失敗時に ops から追跡できる
+
+## Media の復旧
+
+soft delete した media は、ops 経由で戻せるようにします。
+
+- archive 時は `deletedAt` / `deletedBy` / `retentionState` / `retentionUntil` を記録する
+- restore 時は `deletedAt` と `deletedBy` を外し、`retentionState` を `active` に戻す
+- restore 導線は `/api/core/media/:id/restore`
 
 ## Ops 記録
 
-core では 2 つの ops action を持っています。
+次の 2 種類を残します。
 
 - backup snapshot の記録
 - restore drill の記録
 
-これらは `operational-events` を作り、recovery 作業の application-level な audit trail を残します。
+どちらも application-level audit trail として `operational-events` から辿れます。
+
