@@ -26,11 +26,26 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 - `/ops` からも project の manifest 確認と scaffold 作成ができる
 - `example` project を見本として同梱している
 
+## 最短フロー
+
+はじめて触るときは、この順で進めれば十分です。
+
+1. `.env.local` を用意して `DATABASE_URL` と `BOOTSTRAP_OWNER_TOKEN` を入れる
+2. `npm install`
+3. `npm run generate:types`
+4. `npm run generate:importmap`
+5. `npm run dev`
+6. `http://localhost:3000/bootstrap/owner` で最初の `platform_owner` を作る
+7. `http://localhost:3000/ops` を開いて `Project Factory` から新しい project を作る
+8. `http://localhost:3000/app` で project に入り、画面と API を足していく
+
+迷ったら、まずは `/bootstrap/owner` → `/ops` → `/app` の順で触れば大丈夫です。
+
 ## まずやること
 
 1. `npm install`
 2. `npm run dev:infra`
-3. `.env.example` を `.env.local` にコピー
+3. `.env.local` を作る（`.env.example` をコピーしても OK）
 4. `.env.local` に最低限の env を入れる
 5. `npm run generate:types`
 6. `npm run generate:importmap`
