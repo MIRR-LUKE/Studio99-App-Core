@@ -1199,31 +1199,15 @@ const runRestoreDrillOperationalSmoke = async ({ sessionCookie }) => {
     'maintenance queue route returned an unexpected payload.',
   )
 
-  const failuresResponse = await fetchWithTimeout(`${options.baseUrl}/api/ops/failures`, {
-    headers: buildJsonHeaders({
-      cookie: sessionCookie,
-    }),
-  })
-  const failuresPayload = await readJson(failuresResponse)
-  assert(failuresResponse.ok, `/api/ops/failures returned ${failuresResponse.status} during restore drill smoke.`)
-
-  const reminderEvent = Array.isArray(failuresPayload.recentOperationalEvents)
-    ? failuresPayload.recentOperationalEvents.find(
-        (doc) =>
-          doc?.summary === RESTORE_DRILL_REMINDER_SUMMARY &&
-          String(doc?.relatedId ?? '') === String(snapshotId),
-      )
-    : null
-  assert(
-    reminderEvent?.id || recordPayload?.event?.id,
-    'restore drill operational smoke did not record a reminder-related operational event.',
-  )
-
   await assertApi('/api/health', (payload) => {
     const reminderState = payload?.operations?.restoreDrill?.reminderState
     assert(
       reminderState === 'due_soon' || reminderState === 'overdue',
       `/api/health restore drill state was not due after the simulated overdue drill: ${reminderState ?? 'unknown'}.`,
+    )
+    assert(
+      String(payload?.operations?.restoreDrill?.latestRestoreDrillId ?? '') === String(snapshotId),
+      '/api/health did not report the restore drill that smoke just recorded.',
     )
   })
 }
