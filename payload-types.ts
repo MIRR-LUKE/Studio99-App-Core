@@ -80,6 +80,9 @@ export interface Config {
     'billing-events': BillingEvent;
     'support-notes': SupportNote;
     'operational-events': OperationalEvent;
+    'console-customers': ConsoleCustomer;
+    'console-workspaces': ConsoleWorkspace;
+    'console-events': ConsoleEvent;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -101,6 +104,9 @@ export interface Config {
     'billing-events': BillingEventsSelect<false> | BillingEventsSelect<true>;
     'support-notes': SupportNotesSelect<false> | SupportNotesSelect<true>;
     'operational-events': OperationalEventsSelect<false> | OperationalEventsSelect<true>;
+    'console-customers': ConsoleCustomersSelect<false> | ConsoleCustomersSelect<true>;
+    'console-workspaces': ConsoleWorkspacesSelect<false> | ConsoleWorkspacesSelect<true>;
+    'console-events': ConsoleEventsSelect<false> | ConsoleEventsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -607,6 +613,56 @@ export interface OperationalEvent {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "console-customers".
+ */
+export interface ConsoleCustomer {
+  id: number;
+  organization: number | Organization;
+  title: string;
+  status?: ('draft' | 'active' | 'archived') | null;
+  accountTier?: ('starter' | 'growth' | 'scale' | 'enterprise') | null;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "console-workspaces".
+ */
+export interface ConsoleWorkspace {
+  id: number;
+  organization: number | Organization;
+  customer: number | ConsoleCustomer;
+  title: string;
+  status?: ('draft' | 'active' | 'archived') | null;
+  workspaceType?: ('client' | 'internal' | 'pilot' | 'production') | null;
+  lastActivityAt?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "console-events".
+ */
+export interface ConsoleEvent {
+  id: number;
+  organization: number | Organization;
+  customer?: (number | null) | ConsoleCustomer;
+  workspace?: (number | null) | ConsoleWorkspace;
+  title: string;
+  status?: ('draft' | 'active' | 'archived') | null;
+  eventType?: ('note' | 'kickoff' | 'request' | 'delivery' | 'billing' | 'incident') | null;
+  severity?: ('low' | 'medium' | 'high') | null;
+  occurredAt?: string | null;
+  details?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -805,6 +861,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'operational-events';
         value: number | OperationalEvent;
+      } | null)
+    | ({
+        relationTo: 'console-customers';
+        value: number | ConsoleCustomer;
+      } | null)
+    | ({
+        relationTo: 'console-workspaces';
+        value: number | ConsoleWorkspace;
+      } | null)
+    | ({
+        relationTo: 'console-events';
+        value: number | ConsoleEvent;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1179,6 +1247,53 @@ export interface OperationalEventsSelect<T extends boolean = true> {
   detail?: T;
   acknowledgedAt?: T;
   acknowledgedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "console-customers_select".
+ */
+export interface ConsoleCustomersSelect<T extends boolean = true> {
+  organization?: T;
+  title?: T;
+  status?: T;
+  accountTier?: T;
+  ownerName?: T;
+  ownerEmail?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "console-workspaces_select".
+ */
+export interface ConsoleWorkspacesSelect<T extends boolean = true> {
+  organization?: T;
+  customer?: T;
+  title?: T;
+  status?: T;
+  workspaceType?: T;
+  lastActivityAt?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "console-events_select".
+ */
+export interface ConsoleEventsSelect<T extends boolean = true> {
+  organization?: T;
+  customer?: T;
+  workspace?: T;
+  title?: T;
+  status?: T;
+  eventType?: T;
+  severity?: T;
+  occurredAt?: T;
+  details?: T;
   updatedAt?: T;
   createdAt?: T;
 }

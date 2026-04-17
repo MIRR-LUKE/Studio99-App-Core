@@ -25,6 +25,7 @@ import { Organizations } from './src/core/collections/Organizations'
 import { SupportNotes } from './src/core/collections/SupportNotes'
 import { coreJobsConfig } from './src/core/ops/jobs'
 import { Users } from './src/core/collections/Users'
+import { consoleProjectCollectionConfigs } from './src/projects/console'
 import { env } from './src/lib/env'
 
 const filename = fileURLToPath(import.meta.url)
@@ -68,6 +69,7 @@ export default buildConfig({
     BillingEvents,
     SupportNotes,
     OperationalEvents,
+    ...consoleProjectCollectionConfigs,
   ],
   globals: [
     AppSettings,
