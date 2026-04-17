@@ -4,6 +4,7 @@ import { env } from '@/lib/env'
 
 import { retryBillingEventByID, syncOrganizationSeatSnapshot } from '../billing/sync'
 import { createSystemLocalApi } from '../server/localApi'
+import { maybeRecordRestoreDrillReminder } from './recovery'
 
 export const CORE_JOB_QUEUES = ['emails', 'billing', 'sync', 'exports', 'ai', 'maintenance'] as const
 
@@ -274,11 +275,13 @@ export const coreTasks: TaskConfig<any>[] = [
         markExpiredMedia(req),
         expireBackupSnapshots(req),
       ])
+      const restoreDrillReminder = await maybeRecordRestoreDrillReminder({ req })
 
       const retentionSummary = {
         backupSnapshots: backupRetention.updated,
         billingEvents: staleBillingEvents.totalDocs,
         media: mediaRetention.updated,
+        restoreDrillReminder: restoreDrillReminder ? 1 : 0,
       }
 
       await operationalEvent({
@@ -286,6 +289,7 @@ export const coreTasks: TaskConfig<any>[] = [
           retentionSummary,
           scannedAt: getRetentionSweepCutoff(),
           staleBillingEvents: staleBillingEvents.totalDocs,
+          restoreDrillReminder: Boolean(restoreDrillReminder),
         },
         eventType: 'maintenance_action',
         queueName: 'maintenance',
@@ -300,6 +304,7 @@ export const coreTasks: TaskConfig<any>[] = [
           backupRetention: backupRetention.updated,
           staleBillingEvents: staleBillingEvents.totalDocs,
           mediaRetention: mediaRetention.updated,
+          restoreDrillReminder: Boolean(restoreDrillReminder),
         },
       }
     },
@@ -307,6 +312,7 @@ export const coreTasks: TaskConfig<any>[] = [
       { name: 'backupRetention', type: 'number', required: true },
       { name: 'mediaRetention', type: 'number', required: true },
       { name: 'staleBillingEvents', type: 'number', required: true },
+      { name: 'restoreDrillReminder', type: 'checkbox', required: true },
     ],
     slug: 'run-maintenance',
   }),

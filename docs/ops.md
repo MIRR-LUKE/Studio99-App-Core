@@ -49,6 +49,7 @@ project factory の表入口は `/console/factory` です。
 - project の manifest を確認する
 - project の scaffold を実際に作る
 - template ごとの差を見比べる
+- routes / collections / feature flags / use cases / preset next steps を並べて見る
 
 ## recovery
 
@@ -58,6 +59,7 @@ project factory の表入口は `/console/factory` です。
 - `POST /api/ops/recovery/restore-drill`
 
 どちらも application-level な記録を残します。
+nightly maintenance は restore drill の期限を見て reminder event を自動で残します。
 
 - `backup-snapshots`
 - `operational-events`
@@ -98,5 +100,6 @@ dangerous action には次が必要です。
 2. billing の確認は `/console/billing`
 3. queue と再実行は `/console/jobs`
 4. backup と restore drill は `/console/recovery`
-5. 危険操作や failure console は `/console/ops`
+5. maintenance queue で reminder と retention sweep を回す
+6. 危険操作や failure console は `/console/ops`
 6. 迷ったら `/console` に戻る

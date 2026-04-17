@@ -5,14 +5,66 @@ import { env } from '@/lib/env'
 import { createSystemLocalApi } from '../server/localApi'
 import { resolveDocumentId } from '../utils/ids'
 
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000
+export const RECOVERY_DRILL_REMINDER_LEAD_DAYS = 7
+const RESTORE_DRILL_REMINDER_SUMMARY = 'Restore drill reminder issued'
+
+const addDays = (value: Date | string, days: number) => new Date(new Date(value).getTime() + days * MILLISECONDS_PER_DAY)
+
+const startOfToday = (value = new Date()) => {
+  const next = new Date(value)
+  next.setHours(0, 0, 0, 0)
+  return next
+}
+
+const toDate = (value: unknown) => {
+  if (!value) {
+    return null
+  }
+
+  const parsed = new Date(String(value))
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+
+  return parsed
+}
+
+const daysUntil = (value: Date | string | null, now = new Date()) => {
+  if (!value) {
+    return null
+  }
+
+  const diff = new Date(value).getTime() - now.getTime()
+  return Math.ceil(diff / MILLISECONDS_PER_DAY)
+}
+
 export const getRecoveryPolicy = () => ({
   appRestore:
     'Payload versions restore config and singleton data. Infra backup restores Postgres, object storage, and secrets.',
   backupRetentionDays: env.recovery.backupRetentionDays,
   exportRetentionDays: env.recovery.exportRetentionDays,
   mediaRetentionDays: env.recovery.mediaRetentionDays,
+  restoreDrillReminderLeadDays: RECOVERY_DRILL_REMINDER_LEAD_DAYS,
   restoreDrillCadenceDays: env.recovery.restoreDrillCadenceDays,
 })
+
+export type RecoveryDrillStatus = {
+  latestBackupAt: string | null
+  latestBackupId: string | null
+  latestReminderAt: string | null
+  latestReminderId: string | null
+  latestRestoreDrillAt: string | null
+  latestRestoreDrillId: string | null
+  nextReminderAt: string | null
+  nextRestoreDrillAt: string | null
+  reminderDue: boolean
+  reminderLeadDays: number
+  reminderState: 'due_soon' | 'missing' | 'on_track' | 'overdue'
+  daysUntilNextDrill: number | null
+  daysUntilReminder: number | null
+}
 
 type RecoveryEventArgs = {
   detail?: Record<string, unknown>
@@ -32,7 +84,7 @@ const recordOperationalEvent = async ({
   eventType: 'backup_snapshot' | 'media_restore' | 'restore_drill'
   summary: string
 }) => {
-  const api = createSystemLocalApi(req, 'record backup snapshot')
+  const api = createSystemLocalApi(req, 'record recovery operational event')
   return api.create({
     collection: 'operational-events',
     depth: 0,
@@ -44,6 +96,105 @@ const recordOperationalEvent = async ({
       summary,
     },
   })
+}
+
+export const getRecoveryDrillStatus = async (req: PayloadRequest): Promise<RecoveryDrillStatus> => {
+  const api = createSystemLocalApi(req, 'read recovery drill status')
+
+  const [restoreDrills, backups, reminders] = await Promise.all([
+    api.find({
+      collection: 'backup-snapshots',
+      depth: 0,
+      limit: 1,
+      sort: '-snapshotAt',
+      where: {
+        snapshotType: {
+          equals: 'restore_drill',
+        },
+      },
+    }),
+    api.find({
+      collection: 'backup-snapshots',
+      depth: 0,
+      limit: 1,
+      sort: '-snapshotAt',
+    }),
+    api.find({
+      collection: 'operational-events',
+      depth: 0,
+      limit: 1,
+      sort: '-createdAt',
+      where: {
+        summary: {
+          equals: RESTORE_DRILL_REMINDER_SUMMARY,
+        },
+      },
+    }),
+  ])
+
+  const latestRestoreDrill = (restoreDrills.docs[0] ?? null) as null | Record<string, unknown>
+  const latestBackup = (backups.docs[0] ?? null) as null | Record<string, unknown>
+  const latestReminder = (reminders.docs[0] ?? null) as null | Record<string, unknown>
+
+  const latestRestoreDrillAt = toDate(latestRestoreDrill?.snapshotAt ?? latestRestoreDrill?.createdAt)
+  const latestBackupAt = toDate(latestBackup?.snapshotAt ?? latestBackup?.createdAt)
+  const latestReminderAt = toDate(latestReminder?.createdAt)
+
+  const reminderLeadDays = RECOVERY_DRILL_REMINDER_LEAD_DAYS
+  const cadenceDays = env.recovery.restoreDrillCadenceDays
+  const nextRestoreDrillAt = latestRestoreDrillAt ? addDays(latestRestoreDrillAt, cadenceDays) : null
+  const nextReminderAt =
+    nextRestoreDrillAt && !Number.isNaN(nextRestoreDrillAt.getTime())
+      ? addDays(nextRestoreDrillAt, -reminderLeadDays)
+      : latestRestoreDrillAt
+        ? addDays(latestRestoreDrillAt, cadenceDays - reminderLeadDays)
+        : null
+
+  const daysUntilNextDrill = daysUntil(nextRestoreDrillAt)
+  const daysUntilReminder = daysUntil(nextReminderAt)
+  const reminderDue =
+    startOfToday().getTime() >=
+    (nextReminderAt ? startOfToday(nextReminderAt).getTime() : startOfToday().getTime())
+
+  const reminderState: RecoveryDrillStatus['reminderState'] = !latestRestoreDrillAt
+    ? 'missing'
+    : daysUntilNextDrill === null
+      ? 'missing'
+      : daysUntilNextDrill <= 0
+        ? 'overdue'
+        : daysUntilNextDrill <= reminderLeadDays
+          ? 'due_soon'
+          : 'on_track'
+
+  return {
+    latestBackupAt: latestBackupAt ? latestBackupAt.toISOString() : null,
+    latestBackupId: latestBackup ? String(resolveDocumentId(latestBackup.id ?? null) ?? '') || null : null,
+    latestReminderAt: latestReminderAt ? latestReminderAt.toISOString() : null,
+    latestReminderId: latestReminder ? String(resolveDocumentId(latestReminder.id ?? null) ?? '') || null : null,
+    latestRestoreDrillAt: latestRestoreDrillAt ? latestRestoreDrillAt.toISOString() : null,
+    latestRestoreDrillId: latestRestoreDrill
+      ? String(resolveDocumentId(latestRestoreDrill.id ?? null) ?? '') || null
+      : null,
+    nextReminderAt: nextReminderAt ? nextReminderAt.toISOString() : null,
+    nextRestoreDrillAt: nextRestoreDrillAt ? nextRestoreDrillAt.toISOString() : null,
+    reminderDue,
+    reminderLeadDays,
+    reminderState,
+    daysUntilNextDrill,
+    daysUntilReminder,
+  }
+}
+
+const getRestoreDrillSchedule = (snapshotAt: string, cadenceDays = env.recovery.restoreDrillCadenceDays) => {
+  const drillAt = new Date(snapshotAt)
+  const nextRestoreDrillAt = addDays(drillAt, cadenceDays)
+  const reminderAt = addDays(nextRestoreDrillAt, -RECOVERY_DRILL_REMINDER_LEAD_DAYS)
+
+  return {
+    nextRestoreDrillAt: nextRestoreDrillAt.toISOString(),
+    reminderAt: reminderAt.toISOString(),
+    reminderLeadDays: RECOVERY_DRILL_REMINDER_LEAD_DAYS,
+  }
 }
 
 export const recordBackupSnapshot = async ({
@@ -115,11 +266,16 @@ export const recordRestoreDrill = async ({
   req,
 }: RecoveryEventArgs) => {
   const api = createSystemLocalApi(req, 'record restore drill')
+  const snapshotAt = new Date().toISOString()
+  const schedule = getRestoreDrillSchedule(snapshotAt)
   const drill = await api.create({
     collection: 'operational-events',
     depth: 0,
     data: {
-      detail: getRecoveryPolicy(),
+      detail: {
+        ...getRecoveryPolicy(),
+        schedule,
+      },
       eventType: 'restore_drill',
       reason,
       status: 'succeeded',
@@ -131,14 +287,17 @@ export const recordRestoreDrill = async ({
     collection: 'backup-snapshots',
     depth: 0,
     data: {
-      detail: getRecoveryPolicy(),
+      detail: {
+        ...getRecoveryPolicy(),
+        schedule,
+      },
       notes: 'Restore drill snapshot metadata.',
       reason,
       recordedBy: getRecordedBy(req),
       retentionUntil: new Date(
         Date.now() + env.recovery.backupRetentionDays * 24 * 60 * 60 * 1000,
       ).toISOString(),
-      snapshotAt: new Date().toISOString(),
+      snapshotAt,
       snapshotType: 'restore_drill',
       status: 'available',
       summary: 'Restore drill backup snapshot metadata',
@@ -146,6 +305,44 @@ export const recordRestoreDrill = async ({
   })
 
   return drill
+}
+
+export const maybeRecordRestoreDrillReminder = async ({ req }: { req: PayloadRequest }) => {
+  const api = createSystemLocalApi(req, 'check restore drill reminder')
+  const status = await getRecoveryDrillStatus(req)
+  const reminderWindowStart = status.nextReminderAt
+    ? startOfToday(new Date(status.nextReminderAt))
+    : startOfToday()
+  const latestReminderAt = status.latestReminderAt ? startOfToday(new Date(status.latestReminderAt)) : null
+  const shouldRemind =
+    status.reminderState !== 'on_track' &&
+    status.reminderDue &&
+    (!latestReminderAt || latestReminderAt.getTime() < reminderWindowStart.getTime())
+
+  if (!shouldRemind) {
+    return null
+  }
+
+  return api.create({
+    collection: 'operational-events',
+    depth: 0,
+    data: {
+      detail: {
+        latestBackupAt: status.latestBackupAt,
+        latestRestoreDrillAt: status.latestRestoreDrillAt,
+        nextReminderAt: status.nextReminderAt,
+        nextRestoreDrillAt: status.nextRestoreDrillAt,
+        reminderLeadDays: status.reminderLeadDays,
+        reminderState: status.reminderState,
+        scheduledAt: new Date().toISOString(),
+      },
+      eventType: 'maintenance_action',
+      queueName: 'maintenance',
+      reason: 'nightly maintenance restore drill reminder sweep',
+      status: 'succeeded',
+      summary: RESTORE_DRILL_REMINDER_SUMMARY,
+    },
+  })
 }
 
 export const recordMediaRestore = async ({

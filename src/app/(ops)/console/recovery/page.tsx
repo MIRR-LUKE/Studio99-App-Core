@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { getRecoveryPolicy } from '@/core/ops/recovery'
+import { RECOVERY_DRILL_REMINDER_LEAD_DAYS, getRecoveryDrillStatus, getRecoveryPolicy } from '@/core/ops/recovery'
 
 import { ConsoleActionForm } from '../_components/console-action-form'
 import {
@@ -25,6 +25,17 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000
+
+const addDays = (value: unknown, days: number) => {
+  const date = new Date(String(value))
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return new Date(date.getTime() + days * DAY_IN_MS)
+}
+
 export default async function ConsoleRecoveryPage() {
   const { req } = await getConsoleRequest('/console/recovery')
 
@@ -42,7 +53,7 @@ export default async function ConsoleRecoveryPage() {
 
   const api = getConsoleApi(req, 'read console recovery page')
   const recovery = getRecoveryPolicy()
-  const [snapshots, purgeCandidates, restoreDrills] = await Promise.all([
+  const [snapshots, purgeCandidates, restoreDrills, recoveryDrillStatus] = await Promise.all([
     api.find({
       collection: 'backup-snapshots',
       depth: 0,
@@ -71,7 +82,14 @@ export default async function ConsoleRecoveryPage() {
         },
       },
     }),
+    getRecoveryDrillStatus(req),
   ])
+
+  const lastDrillAt = recoveryDrillStatus.latestRestoreDrillAt
+  const nextDrillAt = recoveryDrillStatus.nextRestoreDrillAt
+  const reminderAt = recoveryDrillStatus.nextReminderAt
+  const latestReminderAt = recoveryDrillStatus.latestReminderAt
+  const nextReminderWindowStart = addDays(nextDrillAt ?? lastDrillAt, -RECOVERY_DRILL_REMINDER_LEAD_DAYS)
 
   return (
     <section style={consolePageStyle}>
@@ -99,6 +117,14 @@ export default async function ConsoleRecoveryPage() {
           <strong>
             {recovery.backupRetentionDays} / {recovery.mediaRetentionDays} days
           </strong>
+        </div>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>drill state</p>
+          <strong>{recoveryDrillStatus.reminderState}</strong>
+        </div>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>next drill</p>
+          <strong>{formatDate(nextDrillAt)}</strong>
         </div>
       </section>
 
@@ -135,6 +161,13 @@ export default async function ConsoleRecoveryPage() {
             requireReason
             successLabel="restore drill を記録しました。"
           />
+          <ConsoleActionForm
+            action="/api/ops/jobs/run"
+            buttonLabel="run maintenance queue"
+            description="maintenance queue を手動で実行し、restore drill reminder と retention sweep を進めます。"
+            payload={{ queue: 'maintenance' }}
+            successLabel="maintenance queue の実行を受け付けました。"
+          />
         </div>
       </section>
 
@@ -149,6 +182,21 @@ export default async function ConsoleRecoveryPage() {
           <Link href="/console/jobs" style={consoleLinkStyle}>
             jobs
           </Link>
+        </div>
+      </section>
+
+      <section style={consoleSectionStyle}>
+        <div style={consoleCalloutStyle}>
+          <p style={{ margin: '0 0 8px' }}>
+            <strong>schedule</strong>
+          </p>
+          <p style={consoleMutedStyle}>
+            restore drill cadence は {recovery.restoreDrillCadenceDays} 日、reminder は {RECOVERY_DRILL_REMINDER_LEAD_DAYS} 日前からです。
+            次回 reminder window は {formatDate(nextReminderWindowStart)}、最後の reminder は {formatDate(latestReminderAt)} です。
+          </p>
+          <p style={consoleMutedStyle}>
+            現在の状態は <span style={consoleCodeStyle}>{recoveryDrillStatus.reminderState}</span> で、maintenance queue が定期的に reminder event を残します。
+          </p>
         </div>
       </section>
 
@@ -186,6 +234,8 @@ export default async function ConsoleRecoveryPage() {
               <tr>
                 <th style={consoleTableCellStyle}>snapshot</th>
                 <th style={consoleTableCellStyle}>status</th>
+                <th style={consoleTableCellStyle}>next drill</th>
+                <th style={consoleTableCellStyle}>reminder at</th>
                 <th style={consoleTableCellStyle}>reason</th>
                 <th style={consoleTableCellStyle}>retention until</th>
               </tr>
@@ -195,6 +245,22 @@ export default async function ConsoleRecoveryPage() {
                 <tr key={String(snapshot.id ?? '')}>
                   <td style={consoleTableCellStyle}>{formatDate(snapshot.snapshotAt)}</td>
                   <td style={consoleTableCellStyle}>{displayValue(snapshot.status)}</td>
+                  <td style={consoleTableCellStyle}>
+                    {formatDate(
+                      snapshot.detail && typeof snapshot.detail === 'object'
+                        ? (snapshot.detail as { schedule?: { nextRestoreDrillAt?: string } }).schedule?.nextRestoreDrillAt ??
+                            addDays(snapshot.snapshotAt ?? snapshot.createdAt, recovery.restoreDrillCadenceDays)
+                        : addDays(snapshot.snapshotAt ?? snapshot.createdAt, recovery.restoreDrillCadenceDays),
+                    )}
+                  </td>
+                  <td style={consoleTableCellStyle}>
+                    {formatDate(
+                      snapshot.detail && typeof snapshot.detail === 'object'
+                        ? (snapshot.detail as { schedule?: { reminderAt?: string } }).schedule?.reminderAt ??
+                            reminderAt
+                        : reminderAt,
+                    )}
+                  </td>
                   <td style={consoleTableCellStyle}>{displayValue(snapshot.reason)}</td>
                   <td style={consoleTableCellStyle}>{formatDate(snapshot.retentionUntil)}</td>
                 </tr>
