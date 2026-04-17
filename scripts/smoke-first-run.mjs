@@ -1,11 +1,50 @@
 #!/usr/bin/env node
 
 import { spawn } from 'node:child_process'
+import { readFile } from 'node:fs/promises'
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:3000'
 const DEFAULT_HOST = '0.0.0.0'
 const DEFAULT_PORT = 3000
 const DEFAULT_TIMEOUT_MS = 180_000
+
+const loadDotEnvFile = async (filePath) => {
+  try {
+    const contents = await readFile(filePath, 'utf8')
+
+    for (const rawLine of contents.split(/\r?\n/)) {
+      const line = rawLine.trim()
+      if (!line || line.startsWith('#')) {
+        continue
+      }
+
+      const separatorIndex = line.indexOf('=')
+      if (separatorIndex <= 0) {
+        continue
+      }
+
+      const key = line.slice(0, separatorIndex).trim()
+      if (!key || process.env[key] !== undefined) {
+        continue
+      }
+
+      let value = line.slice(separatorIndex + 1).trim()
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1)
+      }
+
+      process.env[key] = value
+    }
+  } catch {
+    // Ignore missing env files. The workflow may inject everything directly.
+  }
+}
+
+await loadDotEnvFile('.env')
+await loadDotEnvFile('.env.local')
 
 const helpText = `Usage:
   node scripts/smoke-first-run.mjs [--base-url URL] [--host HOST] [--port PORT] [--timeout MS] [--no-start]
@@ -186,16 +225,21 @@ const startServer = () =>
   })
 
 const fetchWithTimeout = async (url, init = {}, timeoutMs = options.timeoutMs) => {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(new Error(`Timed out after ${timeoutMs}ms`)), timeoutMs)
+  let timerId = null
 
   try {
-    return await fetch(url, {
-      ...init,
-      signal: controller.signal,
-    })
+    return await Promise.race([
+      fetch(url, init),
+      new Promise((_, reject) => {
+        timerId = setTimeout(() => {
+          reject(new Error(`Timed out after ${timeoutMs}ms`))
+        }, timeoutMs)
+      }),
+    ])
   } finally {
-    clearTimeout(timer)
+    if (timerId !== null) {
+      clearTimeout(timerId)
+    }
   }
 }
 
@@ -383,31 +427,80 @@ const waitForReady = async () => {
 
   while (Date.now() < deadline) {
     try {
-      const response = await fetchWithTimeout(`${options.baseUrl}/api/ready`, {
+      const bootstrapResponse = await fetchWithTimeout(`${options.baseUrl}/bootstrap/owner`, {
         headers: {
-          accept: 'application/json',
+          accept: 'text/html,application/xhtml+xml',
           'user-agent': 'studio99-smoke/first-run',
         },
-      }, 10_000)
+      }, 5_000)
 
-      if (!response.ok) {
-        lastError = new Error(`/api/ready returned ${response.status}.`)
-      } else {
-        const payload = await readJson(response)
-        if (payload.ready === true) {
-          return payload
-        }
-
-        lastError = new Error(`/api/ready was not ready: ${JSON.stringify(payload)}`)
+      const bootstrapText = await readText(bootstrapResponse)
+      if (!bootstrapResponse.ok) {
+        lastError = new Error(`/bootstrap/owner returned ${bootstrapResponse.status}.`)
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        continue
       }
+
+      if (!bootstrapText.includes('最初の管理者を作る') && !bootstrapText.includes('platform owner')) {
+        lastError = new Error('/bootstrap/owner did not render the first owner form.')
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        continue
+      }
+
+      break
     } catch (error) {
       lastError = error
+      await new Promise((resolve) => setTimeout(resolve, 1000))
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 1000))
   }
 
-  throw lastError ?? new Error('Timed out waiting for /api/ready.')
+  if (Date.now() >= deadline) {
+    throw lastError ?? new Error('Timed out waiting for /bootstrap/owner.')
+  }
+
+  const healthResponse = await fetchWithTimeout(`${options.baseUrl}/api/health`, {
+    headers: {
+      accept: 'application/json',
+      'user-agent': 'studio99-smoke/first-run',
+    },
+  }, 10_000)
+
+  const healthText = await readText(healthResponse)
+  if (healthResponse.status >= 500) {
+    throw new Error(`/api/health returned ${healthResponse.status}: ${healthText.slice(0, 240)}`)
+  }
+
+  if (!healthResponse.ok) {
+    throw new Error(`/api/health returned ${healthResponse.status}.`)
+  }
+
+  const health = healthText ? JSON.parse(healthText) : {}
+  if (health.status !== 'ok') {
+    throw new Error(`/api/health was not ok: ${healthText.slice(0, 240)}`)
+  }
+
+  const response = await fetchWithTimeout(`${options.baseUrl}/api/ready`, {
+    headers: {
+      accept: 'application/json',
+      'user-agent': 'studio99-smoke/first-run',
+    },
+  }, 10_000)
+
+  const readyText = await readText(response)
+  if (response.status >= 500) {
+    throw new Error(`/api/ready returned ${response.status}: ${readyText.slice(0, 240)}`)
+  }
+
+  if (!response.ok) {
+    throw new Error(`/api/ready returned ${response.status}.`)
+  }
+
+  const payload = readyText ? JSON.parse(readyText) : {}
+  if (payload.ready !== true) {
+    throw new Error(`/api/ready was not ready: ${readyText.slice(0, 240)}`)
+  }
+
+  return payload
 }
 
 const run = async () => {
