@@ -7,6 +7,7 @@ import {
   createAuthenticatedPayloadRequest,
 } from '@/core/server/payloadRequest'
 import { createSameOriginMutationGuard, enforceRateLimit } from '@/core/security'
+import { getCurrentOrganizationCookieOptions } from '@/core/server/currentOrganization'
 
 export async function POST(request: Request) {
   const sameOriginGuard = createSameOriginMutationGuard(request)
@@ -51,11 +52,11 @@ export async function POST(request: Request) {
     })
 
     const response = NextResponse.json(result)
-    response.cookies.set(CURRENT_ORGANIZATION_COOKIE, result.cookie.value, {
-      httpOnly: true,
-      path: '/',
-      sameSite: 'lax',
-    })
+    response.cookies.set(
+      CURRENT_ORGANIZATION_COOKIE,
+      result.cookie.value,
+      getCurrentOrganizationCookieOptions(),
+    )
 
     return applyPayloadResponseHeaders(response, responseHeaders, {
       authenticated: true,

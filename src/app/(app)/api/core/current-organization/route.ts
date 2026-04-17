@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import {
   CURRENT_ORGANIZATION_COOKIE,
+  getCurrentOrganizationCookieOptions,
   getCurrentOrganizationState,
   switchCurrentOrganization,
 } from '@/core/server/currentOrganization'
@@ -68,11 +69,11 @@ export async function POST(request: Request) {
   try {
     const state = await switchCurrentOrganization(req, body.organizationId)
     const response = NextResponse.json(state)
-    response.cookies.set(CURRENT_ORGANIZATION_COOKIE, String(state.currentOrganizationId), {
-      httpOnly: true,
-      path: '/',
-      sameSite: 'lax',
-    })
+    response.cookies.set(
+      CURRENT_ORGANIZATION_COOKIE,
+      String(state.currentOrganizationId),
+      getCurrentOrganizationCookieOptions(),
+    )
 
     return applyPayloadResponseHeaders(response, responseHeaders, {
       authenticated: true,

@@ -66,6 +66,12 @@ export const getRequestOrigin = (request: Request) => {
 
 export const isSameOriginRequest = (request: Request) => {
   const origin = getRequestOrigin(request)
+  const fetchMetadata = request.headers.get('sec-fetch-site')?.trim().toLowerCase()
+
+  if (fetchMetadata && fetchMetadata !== 'same-origin' && fetchMetadata !== 'none') {
+    return false
+  }
+
   return origin !== null && isAllowedOrigin(origin)
 }
 

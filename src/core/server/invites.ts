@@ -8,7 +8,11 @@ import { env } from '../../lib/env'
 import { resolveDocumentId } from '../utils/ids'
 import type { OrganizationRole } from '../utils/roles'
 import { createScopedLocalApi, createSystemLocalApi } from './localApi'
-import { CURRENT_ORGANIZATION_COOKIE, switchCurrentOrganization } from './currentOrganization'
+import {
+  CURRENT_ORGANIZATION_COOKIE,
+  getCurrentOrganizationCookieOptions,
+  switchCurrentOrganization,
+} from './currentOrganization'
 
 type InviteDoc = Pick<
   Invite,
@@ -246,6 +250,7 @@ export const acceptInvite = async ({ req, token }: { req: PayloadRequest; token:
   return {
     cookie: {
       name: CURRENT_ORGANIZATION_COOKIE,
+      options: getCurrentOrganizationCookieOptions(),
       value: String(currentOrganizationState.currentOrganizationId),
     },
     inviteId: invite.id,

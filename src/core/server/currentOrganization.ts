@@ -3,8 +3,17 @@ import type { PayloadRequest } from 'payload'
 import type { Membership, Organization, User } from '../../../payload-types'
 import { createScopedLocalApi, createSystemLocalApi } from './localApi'
 import { resolveDocumentId } from '../utils/ids'
+import { env } from '../../lib/env'
 
 export const CURRENT_ORGANIZATION_COOKIE = 'studio99-current-org'
+export const getCurrentOrganizationCookieOptions = () =>
+  ({
+    domain: env.auth.cookieDomain,
+    httpOnly: true,
+    path: '/',
+    sameSite: 'lax',
+    secure: env.auth.cookieSecure,
+  }) as const
 
 type MembershipState = Pick<Membership, 'id' | 'organization' | 'role' | 'status'>
 type UserState = Pick<User, 'currentOrganization' | 'id'>
