@@ -1,5 +1,6 @@
 import type { PayloadRequest } from 'payload'
 
+import { resolveOrganizationBillingSummary } from '@/core/billing/helpers'
 import { getCurrentOrganizationState } from '@/core/server/currentOrganization'
 import { createAuthenticatedServerComponentRequest } from '@/core/server/serverComponentPayload'
 import { createScopedLocalApi } from '@/core/server/localApi'
@@ -28,6 +29,7 @@ const countDocs = async (
 }
 
 export type ConsoleProjectDashboard = {
+  billing: Awaited<ReturnType<typeof resolveOrganizationBillingSummary>>
   collectionCounts: ConsoleDashboardCount[]
   currentOrganizationName: string
   currentOrganizationStatus: string
@@ -68,11 +70,30 @@ export const loadConsoleProjectDashboard = async (): Promise<ConsoleProjectDashb
       typeof currentOrganization === 'object' && currentOrganization !== null && 'name' in currentOrganization
         ? `${String((currentOrganization as { name?: unknown }).name ?? 'organization')} / ${currentOrganizationState.currentOrganizationId ?? 'unknown'}`
         : 'まだ current organization がありません。'
-    const collectionCounts = await Promise.all(
-      consoleProjectCollectionSummaries.map((collection) => countDocs(api, collection.slug)),
-    )
+    const [collectionCounts, billing] = await Promise.all([
+      Promise.all(consoleProjectCollectionSummaries.map((collection) => countDocs(api, collection.slug))),
+      resolveOrganizationBillingSummary({
+        organizationId: currentOrganizationState.currentOrganizationId,
+        req,
+      }).catch(() => ({
+        accessEnabled: false,
+        billingHealthy: false,
+        billingStatus: 'none',
+        entitlements: {},
+        gracePeriodEndsAt: null,
+        organizationId: currentOrganizationState.currentOrganizationId ?? 'unknown',
+        planKey: consoleProject.billing.planKey,
+        recoveryStatus: 'unhealthy' as const,
+        seatLimit: 0,
+        seatRemaining: null,
+        seatsInUse: 0,
+        subscriptionQuantity: 0,
+        usageState: {},
+      })),
+    ])
 
     return {
+      billing,
       collectionCounts,
       currentOrganizationName,
       currentOrganizationStatus,

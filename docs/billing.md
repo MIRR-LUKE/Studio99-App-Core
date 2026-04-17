@@ -66,10 +66,19 @@ Stripe を billing の正本とし、core 側には access 判定、entitlement 
 
 `POST /api/core/billing/meter`
 
+入力:
+
+- `idempotencyKey`
+- `meterKey`
+- `quantity`
+- optional `organizationId`
+- optional `metadata`
+
 挙動:
 
 - idempotent な usage event を `billing-events` に記録する
 - 後段処理を遅らせる場合でも ledger は先に残す
+- `metadata` を一緒に残せるので usage-based billing の拡張入口に使える
 
 ## Access への反映
 
@@ -79,6 +88,15 @@ Stripe を billing の正本とし、core 側には access 判定、entitlement 
 - `billingEntitlements`
 
 seat の利用可否は、active membership 数と同期済み subscription quantity を比較して判定します。
+
+project 側では shared helper を使って access 判定をそろえます。
+
+- `resolveOrganizationBillingSummary({ req, organizationId })`
+- `hasEntitlement({ req, organizationId, entitlementKey })`
+- `isBillingHealthy({ req, organizationId })`
+- `seatRemaining({ req, organizationId })`
+
+dogfooding 中の `/app/console` もこの summary をそのまま使っています。
 
 ## Retry 導線
 

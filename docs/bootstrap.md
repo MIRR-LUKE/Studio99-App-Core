@@ -8,6 +8,8 @@
 
 `Project Factory` を使います。
 
+- template gallery で違いを先に比べる
+- use cases を見て用途を決める
 - project key を入れる
 - 表示名を入れる
 - template を選ぶ
@@ -61,6 +63,7 @@ npm run bootstrap:project -- pararia "Pararia" saas
 - `docs/projects/<projectKey>-billing.md`
 
 `/console/factory` では、これらに加えて `next steps` と `console/projects/<projectKey>` の導線も見られます。
+template ごとに `routes / collections / feature flags / use cases / preset next steps` を並べて確認できます。
 
 ## `/console/factory` の下にある API
 

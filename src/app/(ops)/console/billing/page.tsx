@@ -237,6 +237,12 @@ export default async function ConsoleBillingPage() {
                 <li>quantity: {displayValue(subscription.quantity)}</li>
                 <li>seat limit: {displayValue(subscription.seatLimit)}</li>
                 <li>seats in use: {displayValue(subscription.seatsInUse)}</li>
+                <li>
+                  entitlements:{' '}
+                  {displayValue(
+                    Object.keys((subscription.entitlementsJson as Record<string, unknown> | undefined) ?? {}).join(', ') || '—',
+                  )}
+                </li>
                 <li>grace ends: {formatDate(subscription.gracePeriodEndsAt)}</li>
                 <li>current period end: {formatDate(subscription.currentPeriodEnd)}</li>
                 <li>organization: {displayValue(subscription.organization)}</li>

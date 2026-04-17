@@ -3,21 +3,19 @@
 import type { ChangeEvent, CSSProperties } from 'react'
 import { useMemo, useState } from 'react'
 
+import { buildProjectBootstrapManifest, type ProjectTemplateOption } from '@/core/ops/bootstrap-preview'
+
 type Manifest = {
-  collections: string[]
-  docs: string[]
-  featureFlags: string[]
-  files: string[]
+  collections: readonly string[]
+  docs: readonly string[]
+  featureFlags: readonly string[]
+  files: readonly string[]
+  presetNextSteps: readonly string[]
   projectKey: string
-  routes: string[]
+  routes: readonly string[]
   templateDescription: string
   templateLabel: string
-}
-
-type TemplateOption = {
-  description: string
-  label: string
-  value: string
+  useCases: readonly string[]
 }
 
 type WriteResult = {
@@ -38,7 +36,7 @@ type WriteResult = {
 type BootstrapSummary = Pick<WriteResult, 'links' | 'manifest' | 'nextSteps'>
 
 type Props = {
-  templates: TemplateOption[]
+  templates: ProjectTemplateOption[]
 }
 
 type FormState = {
@@ -65,6 +63,17 @@ const buttonStyle = {
   padding: '12px 16px',
 } satisfies CSSProperties
 
+const panelStyle = {
+  borderTop: '1px solid #e4e4e7',
+  paddingTop: '20px',
+} satisfies CSSProperties
+
+const cardStyle = {
+  border: '1px solid #e4e4e7',
+  borderRadius: '8px',
+  padding: '16px',
+} satisfies CSSProperties
+
 const normalizeProjectKey = (value: string) =>
   value
     .trim()
@@ -72,6 +81,41 @@ const normalizeProjectKey = (value: string) =>
     .replace(/[^a-z0-9-]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
+
+const renderChips = (items: readonly string[]) => (
+  <ul style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', listStyle: 'none', margin: 0, padding: 0 }}>
+    {items.map((item) => (
+      <li
+        key={item}
+        style={{
+          background: '#f4f4f5',
+          borderRadius: '999px',
+          color: '#27272a',
+          fontSize: '13px',
+          lineHeight: 1.4,
+          padding: '6px 10px',
+        }}
+      >
+        {item}
+      </li>
+    ))}
+  </ul>
+)
+
+function ManifestList({ items, title }: { items: readonly string[]; title: string }) {
+  return (
+    <div>
+      <p style={{ margin: '0 0 8px' }}>
+        <strong>{title}</strong>
+      </p>
+      <ul style={{ lineHeight: 1.7, margin: 0, paddingLeft: '20px' }}>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
 
 export function ProjectFactoryPanel({ templates }: Props) {
   const [form, setForm] = useState<FormState>({
@@ -91,6 +135,16 @@ export function ProjectFactoryPanel({ templates }: Props) {
 
   const normalizedProjectKey = useMemo(() => normalizeProjectKey(form.projectKey), [form.projectKey])
   const canSubmit = form.name.trim().length > 0 && normalizedProjectKey.length > 0
+
+  const selectedTemplateManifest = useMemo(
+    () =>
+      buildProjectBootstrapManifest({
+        name: form.name.trim() || 'Sample',
+        projectKey: normalizedProjectKey || 'sample-project',
+        template: form.template,
+      }),
+    [form.name, form.template, normalizedProjectKey],
+  )
 
   const updateField =
     (field: keyof FormState) =>
@@ -156,12 +210,51 @@ export function ProjectFactoryPanel({ templates }: Props) {
   }
 
   return (
-    <section style={{ borderTop: '1px solid #e4e4e7', paddingTop: '20px' }}>
+    <section style={panelStyle}>
       <h2 style={{ margin: '0 0 10px' }}>Project Factory</h2>
       <p style={{ lineHeight: 1.7, margin: '0 0 18px' }}>
-        key と名前を入れると、project 用の route / docs / config / feature flag stub をまとめて作れます。
+        template の違いを見てから作れるようにしています。use case / routes / collections / flags /
+        preset next steps を、作成前に同じ画面で確認できます。
       </p>
-      <div style={{ display: 'grid', gap: '14px', maxWidth: '720px' }}>
+
+      <section style={{ display: 'grid', gap: '14px', marginBottom: '22px' }}>
+        <h3 style={{ margin: 0 }}>template gallery</h3>
+        <div style={{ display: 'grid', gap: '14px' }}>
+          {templates.map((template) => {
+            const manifest = buildProjectBootstrapManifest({
+              name: template.label,
+              projectKey: `sample-${template.value}`,
+              template: template.value,
+            })
+
+            return (
+              <article key={template.value} style={cardStyle}>
+                <p style={{ margin: '0 0 8px' }}>
+                  <strong>{template.label}</strong>
+                </p>
+                <p style={{ color: '#52525b', lineHeight: 1.7, margin: '0 0 12px' }}>{template.description}</p>
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  <div>
+                    <p style={{ margin: '0 0 8px' }}>
+                      <strong>use cases</strong>
+                    </p>
+                    {renderChips(template.useCases)}
+                  </div>
+                  <ManifestList items={manifest.routes} title="generated routes" />
+                  <ManifestList items={manifest.collections} title="generated collections" />
+                  <ManifestList items={manifest.featureFlags} title="generated feature flags" />
+                  <ManifestList items={manifest.presetNextSteps} title="preset next steps" />
+                </div>
+                <p style={{ color: '#71717a', fontFamily: 'monospace', margin: '12px 0 0' }}>
+                  {manifest.templateLabel}
+                </p>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+
+      <div style={{ display: 'grid', gap: '14px', maxWidth: '780px' }}>
         <label style={{ display: 'grid', gap: '8px' }}>
           <span>project key</span>
           <input onChange={updateField('projectKey')} style={inputStyle} value={form.projectKey} />
@@ -184,9 +277,24 @@ export function ProjectFactoryPanel({ templates }: Props) {
           </select>
         </label>
       </div>
+
       <p style={{ color: '#52525b', lineHeight: 1.7, margin: '14px 0 0' }}>
         {selectedTemplate?.description}
       </p>
+
+      <div style={{ display: 'grid', gap: '12px', marginTop: '14px' }}>
+        <div>
+          <p style={{ margin: '0 0 8px' }}>
+            <strong>use cases</strong>
+          </p>
+          {renderChips(selectedTemplate?.useCases ?? [])}
+        </div>
+        <ManifestList items={selectedTemplateManifest.routes} title="generated routes" />
+        <ManifestList items={selectedTemplateManifest.collections} title="generated collections" />
+        <ManifestList items={selectedTemplateManifest.featureFlags} title="generated feature flags" />
+        <ManifestList items={selectedTemplateManifest.presetNextSteps} title="preset next steps" />
+      </div>
+
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '18px' }}>
         <button
           disabled={loading !== null || !canSubmit}
@@ -205,9 +313,9 @@ export function ProjectFactoryPanel({ templates }: Props) {
           {loading === 'create' ? 'scaffold 作成中...' : 'この project を作る'}
         </button>
       </div>
-      {error ? (
-        <p style={{ color: '#b91c1c', margin: '16px 0 0' }}>{error}</p>
-      ) : null}
+
+      {error ? <p style={{ color: '#b91c1c', margin: '16px 0 0' }}>{error}</p> : null}
+
       {preview ? (
         <div style={{ marginTop: '22px' }}>
           <p style={{ margin: '0 0 10px' }}>
@@ -217,10 +325,12 @@ export function ProjectFactoryPanel({ templates }: Props) {
             {preview.manifest.templateDescription}
           </p>
           <div style={{ display: 'grid', gap: '16px' }}>
+            <ManifestList items={preview.manifest.useCases} title="use cases" />
             <ManifestList items={preview.manifest.routes} title="routes" />
             <ManifestList items={preview.manifest.files} title="files" />
             <ManifestList items={preview.manifest.collections} title="collections" />
             <ManifestList items={preview.manifest.featureFlags} title="feature flags" />
+            <ManifestList items={preview.manifest.presetNextSteps} title="preset next steps" />
             <ManifestList items={preview.nextSteps} title="next steps" />
           </div>
           <p style={{ margin: '12px 0 0' }}>
@@ -230,6 +340,7 @@ export function ProjectFactoryPanel({ templates }: Props) {
           </p>
         </div>
       ) : null}
+
       {result ? (
         <div style={{ marginTop: '22px' }}>
           <p style={{ margin: '0 0 10px' }}>
@@ -252,20 +363,5 @@ export function ProjectFactoryPanel({ templates }: Props) {
         </div>
       ) : null}
     </section>
-  )
-}
-
-function ManifestList({ items, title }: { items: string[]; title: string }) {
-  return (
-    <div>
-      <p style={{ margin: '0 0 8px' }}>
-        <strong>{title}</strong>
-      </p>
-      <ul style={{ lineHeight: 1.7, margin: 0, paddingLeft: '20px' }}>
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </div>
   )
 }

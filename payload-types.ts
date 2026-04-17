@@ -214,6 +214,17 @@ export interface User {
       enrolledAt?: string | null;
       verifiedAt?: string | null;
       recoveryCodeVersion?: number | null;
+      secret?: string | null;
+      pendingSecret?: string | null;
+      recoveryCodeHashes?:
+        | {
+            [k: string]: unknown;
+          }
+        | unknown[]
+        | string
+        | number
+        | boolean
+        | null;
     };
   };
   notificationSettings?: {
@@ -949,6 +960,9 @@ export interface UsersSelect<T extends boolean = true> {
               enrolledAt?: T;
               verifiedAt?: T;
               recoveryCodeVersion?: T;
+              secret?: T;
+              pendingSecret?: T;
+              recoveryCodeHashes?: T;
             };
       };
   notificationSettings?:
@@ -1712,6 +1726,7 @@ export interface TaskRunMaintenance {
     backupRetention: number;
     mediaRetention: number;
     staleBillingEvents: number;
+    restoreDrillReminder: boolean;
   };
 }
 /**

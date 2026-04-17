@@ -4,12 +4,14 @@ import { createSystemLocalApi } from '../server/localApi'
 
 export const recordMeterEvent = async ({
   idempotencyKey,
+  metadata,
   meterKey,
   organizationId,
   quantity,
   req,
 }: {
   idempotencyKey: string
+  metadata?: Record<string, unknown>
   meterKey: string
   organizationId: number | string
   quantity: number
@@ -42,6 +44,7 @@ export const recordMeterEvent = async ({
       organization: organizationId,
       quantity,
       rawPayload: {
+        metadata: metadata ?? {},
         meterKey,
         quantity,
       },

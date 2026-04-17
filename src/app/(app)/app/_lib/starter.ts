@@ -55,6 +55,11 @@ export const loadAppStarterState = async (): Promise<AppStarterState> => {
         href: '/console/factory',
         label: '/console/factory',
       },
+      {
+        description: '自分の MFA と recovery code を管理する。',
+        href: '/app/security',
+        label: '/app/security',
+      },
     ],
   }
 }

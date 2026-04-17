@@ -188,6 +188,42 @@ export const Users: CollectionConfig = {
                 readOnly: true,
               },
             },
+            {
+              name: 'secret',
+              type: 'text',
+              access: {
+                create: () => false,
+                read: () => false,
+                update: () => false,
+              },
+              admin: {
+                hidden: true,
+              },
+            },
+            {
+              name: 'pendingSecret',
+              type: 'text',
+              access: {
+                create: () => false,
+                read: () => false,
+                update: () => false,
+              },
+              admin: {
+                hidden: true,
+              },
+            },
+            {
+              name: 'recoveryCodeHashes',
+              type: 'json',
+              access: {
+                create: () => false,
+                read: () => false,
+                update: () => false,
+              },
+              admin: {
+                hidden: true,
+              },
+            },
           ],
         },
       ],

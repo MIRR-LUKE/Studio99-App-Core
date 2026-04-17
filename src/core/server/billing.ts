@@ -2,6 +2,7 @@ import type { PayloadRequest } from 'payload'
 
 import { env } from '@/lib/env'
 
+import { buildUsageEventPayload } from '../billing/helpers'
 import { canManageOrganizationBilling } from '../access/billing'
 import { getCurrentOrganizationState } from './currentOrganization'
 import { createSystemLocalApi } from './localApi'
@@ -155,29 +156,40 @@ export const createPortalSessionForOrganization = async ({
 
 export const createMeterEventForOrganization = async ({
   idempotencyKey,
+  metadata,
   meterKey,
   organizationId,
   quantity,
   req,
 }: {
   idempotencyKey: string
+  metadata?: Record<string, unknown>
   meterKey: string
   organizationId?: null | number | string
   quantity: number
   req: PayloadRequest
 }) => {
   const managedOrganizationId = await getOrganizationFromBody(req, organizationId)
-  const event = await recordMeterEvent({
+  const usageEvent = buildUsageEventPayload({
     idempotencyKey,
     meterKey,
+    metadata,
     organizationId: managedOrganizationId,
     quantity,
+  })
+  const event = await recordMeterEvent({
+    idempotencyKey: usageEvent.idempotencyKey,
+    metadata: usageEvent.metadata,
+    meterKey: usageEvent.meterKey,
+    organizationId: managedOrganizationId,
+    quantity: usageEvent.quantity,
     req,
   })
 
   return {
     event,
     organizationId: managedOrganizationId,
+    usageEvent,
   }
 }
 

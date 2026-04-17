@@ -5,6 +5,12 @@ export const PROJECT_TEMPLATES = {
       'メディア、コンテンツ配信、ドキュメント中心のプロダクト向けです。公開導線と運用導線を早く作れます。',
     featureFlagSuffixes: ['editorial-beta', 'preview'],
     label: 'コンテンツ',
+    presetNextSteps: [
+      'articles を公開一覧の中心にする',
+      'assets を画像・添付の正本として扱う',
+      'releases で配信や更新の節目を記録する',
+    ],
+    useCases: ['記事配信', 'ナレッジベース', '公開コンテンツ運用'],
   },
   'ops-tool': {
     collectionSuffixes: ['tasks', 'runs', 'alerts'],
@@ -12,6 +18,12 @@ export const PROJECT_TEMPLATES = {
       '社内ツール、運用ダッシュボード、バックオフィス向けです。管理画面と ops 導線を強く使う前提です。',
     featureFlagSuffixes: ['ops-preview', 'danger-zone'],
     label: '運用ツール',
+    presetNextSteps: [
+      'tasks を日次運用の入口にする',
+      'runs で実行履歴と再試行の判断材料を残す',
+      'alerts を危険操作や障害検知の起点にする',
+    ],
+    useCases: ['社内管理画面', '運用ダッシュボード', '承認フロー管理'],
   },
   saas: {
     collectionSuffixes: ['customers', 'workspaces', 'events'],
@@ -19,6 +31,12 @@ export const PROJECT_TEMPLATES = {
       'SaaS や継続課金アプリ向けです。tenant / billing / entitlement と相性のよい始点を用意します。',
     featureFlagSuffixes: ['billing-beta', 'team-rollout'],
     label: 'SaaS',
+    presetNextSteps: [
+      'customers を課金対象の中心にする',
+      'workspaces で tenant と membership を束ねる',
+      'events で請求・監査・利用イベントを集める',
+    ],
+    useCases: ['B2B SaaS', 'サブスク課金', 'ワークスペース型アプリ'],
   },
   workspace: {
     collectionSuffixes: ['records', 'reports', 'notes'],
@@ -26,6 +44,12 @@ export const PROJECT_TEMPLATES = {
       '業務アプリ、会員制アプリ、受託案件の初期構成に向いた標準テンプレートです。',
     featureFlagSuffixes: ['beta', 'ops-preview'],
     label: '標準ワークスペース',
+    presetNextSteps: [
+      'records を一覧と詳細の起点にする',
+      'reports を集計や進捗確認の中心にする',
+      'notes に運用メモや補足情報を寄せる',
+    ],
+    useCases: ['業務アプリ', '会員制サービス', '受託案件の土台'],
   },
 } as const
 
@@ -37,6 +61,7 @@ export const DEFAULT_PROJECT_TEMPLATE: ProjectTemplate = 'workspace'
 export type ProjectTemplateOption = {
   description: string
   label: string
+  useCases: readonly string[]
   value: ProjectTemplate
 }
 
@@ -98,11 +123,29 @@ const toCollectionNames = (projectKey: string, template?: ProjectTemplate) =>
 const toFeatureFlags = (projectKey: string, template?: ProjectTemplate) =>
   getTemplateDefinition(template).featureFlagSuffixes.map((suffix) => `${projectKey}-${suffix}`)
 
+const toPresetNextSteps = (projectKey: string, template?: ProjectTemplate) =>
+  getTemplateDefinition(template).presetNextSteps.map((step) =>
+    step
+      .replaceAll('articles', `${projectKey}-articles`)
+      .replaceAll('assets', `${projectKey}-assets`)
+      .replaceAll('releases', `${projectKey}-releases`)
+      .replaceAll('tasks', `${projectKey}-tasks`)
+      .replaceAll('runs', `${projectKey}-runs`)
+      .replaceAll('alerts', `${projectKey}-alerts`)
+      .replaceAll('customers', `${projectKey}-customers`)
+      .replaceAll('workspaces', `${projectKey}-workspaces`)
+      .replaceAll('events', `${projectKey}-events`)
+      .replaceAll('records', `${projectKey}-records`)
+      .replaceAll('reports', `${projectKey}-reports`)
+      .replaceAll('notes', `${projectKey}-notes`),
+  )
+
 export const projectTemplateOptions: ProjectTemplateOption[] = (
   Object.entries(PROJECT_TEMPLATES) as Array<[ProjectTemplate, (typeof PROJECT_TEMPLATES)[ProjectTemplate]]>
 ).map(([value, definition]) => ({
   description: definition.description,
   label: definition.label,
+  useCases: definition.useCases,
   value,
 }))
 
@@ -138,11 +181,17 @@ export const buildProjectBootstrapManifest = ({
       `src/projects/${normalizedProjectKey}/server/README.md`,
     ],
     name,
+    presetNextSteps: toPresetNextSteps(normalizedProjectKey, resolvedTemplate),
     projectKey: normalizedProjectKey,
-    routes: [`/app/${normalizedProjectKey}`, `/api/${normalizedProjectKey}`],
+    routes: [
+      `/app/${normalizedProjectKey}`,
+      `/api/${normalizedProjectKey}`,
+      `/console/projects/${normalizedProjectKey}`,
+    ],
     template: resolvedTemplate,
     templateDescription: definition.description,
     templateLabel: definition.label,
+    useCases: definition.useCases,
   }
 }
 

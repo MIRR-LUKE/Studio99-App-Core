@@ -116,21 +116,47 @@ invite accept は `/app/invite/accept` にあります。
 
 production で必要な設定が欠けている場合は、起動時または build 時点で止めます。
 
-## 将来拡張
+## MFA
 
-MFA を後から足せる余地を残します。
+MFA は `/app/security` から本人が管理します。
+
+- enrollment 開始: `POST /api/core/mfa/enroll`
+- TOTP verify: `POST /api/core/mfa/verify`
+- recovery code 再発行: `POST /api/core/mfa/recovery-codes/regenerate`
+- disable: `POST /api/core/mfa/disable`
+
+いま入っているのは次です。
+
+- TOTP enrollment
+- TOTP verify
+- recovery code 発行
+- recovery code 再発行
+- disable
+- `/console/users` での MFA 状態確認
+
+disable と recovery code 再発行は recent auth を要求します。
+さらに現在の TOTP か recovery code も必要なので、risk event の再認証と組み合わせて運用できます。
+
+`users` には次を持ちます。
 
 - `security.mfa.enabled`
 - `security.mfa.preferredMethod`
 - `security.mfa.enrolledAt`
 - `security.mfa.verifiedAt`
 - `security.mfa.recoveryCodeVersion`
-- recovery code
-- TOTP
+- `security.mfa.secret`
+- `security.mfa.pendingSecret`
+- `security.mfa.recoveryCodeHashes`
+
+`secret` と `recoveryCodeHashes` は hidden field として扱い、通常の read では返しません。
+
+## 将来拡張
+
+今は TOTP 中心ですが、次を足せる形は保っています。
+
 - WebAuthn
 - device / session metadata
-
-ここは今すぐ強制しませんが、データモデルは伸ばせる形にしておきます。
+- login 時の second factor 強制
 
 ## first owner bootstrap
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { createMeterEventForOrganization } from '@/core/server/billing'
+import { completeTotpEnrollment } from '@/core/server/mfa'
 import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
@@ -23,30 +23,21 @@ export async function POST(request: Request) {
     )
   }
 
-  const body = (await request.json()) as {
-    idempotencyKey?: string
-    metadata?: Record<string, unknown>
-    meterKey?: string
-    organizationId?: null | number | string
-    quantity?: number
-  }
+  const body = (await request.json().catch(() => ({}))) as { token?: string }
 
-  if (!body.idempotencyKey || !body.meterKey || typeof body.quantity !== 'number') {
+  if (!body.token) {
     return applyPayloadResponseHeaders(
-      NextResponse.json(
-        { error: 'idempotencyKey, meterKey, and quantity are required.' },
-        { status: 400 },
-      ),
+      NextResponse.json({ error: 'token is required.' }, { status: 400 }),
       responseHeaders,
       { authenticated: true, request },
     )
   }
 
   const rateLimited = await enforceRateLimit({
-    identityParts: [req.user.id, body.organizationId ?? 'current', body.meterKey],
-    limit: 120,
+    identityParts: [req.user.id, 'mfa-verify'],
+    limit: 10,
     request,
-    scope: 'billing:meter',
+    scope: 'auth:mfa:verify',
     windowMs: 10 * 60 * 1000,
   })
   if (rateLimited) {
@@ -54,23 +45,24 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await createMeterEventForOrganization({
-      idempotencyKey: body.idempotencyKey,
-      metadata: body.metadata,
-      meterKey: body.meterKey,
-      organizationId: body.organizationId,
-      quantity: body.quantity,
+    const result = await completeTotpEnrollment({
       req,
+      token: body.token,
     })
 
-    return applyPayloadResponseHeaders(NextResponse.json(result), responseHeaders, {
-      authenticated: true,
-      request,
-    })
+    return applyPayloadResponseHeaders(
+      NextResponse.json({
+        ...result,
+        message: 'MFA を有効化しました。recovery code を控えてください。',
+        ok: true,
+      }),
+      responseHeaders,
+      { authenticated: true, request },
+    )
   } catch (error) {
     return applyPayloadResponseHeaders(
       NextResponse.json(
-        { error: error instanceof Error ? error.message : 'Failed to record meter event.' },
+        { error: error instanceof Error ? error.message : 'Failed to verify MFA enrollment.' },
         { status: 400 },
       ),
       responseHeaders,

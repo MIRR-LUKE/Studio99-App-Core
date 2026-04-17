@@ -67,7 +67,8 @@ Studio99 の表向きの統合管理画面です。
 - jobs
 - security
 
-`/console/factory` では、新しい project を作る前に manifest / files / collections / next steps を確認できます。
+`/console/factory` では、新しい project を作る前に manifest / files / collections / next steps を確認できます。  
+template gallery で use cases と preset next steps も並べて見られます。
 
 ### `/app`
 
@@ -91,8 +92,9 @@ legacy redirect です。
 2. 表示名を入れる
 3. template を選ぶ
 4. `manifest を見る`
-5. `next steps` を確認する
-6. 問題なければ `この project を作る`
+5. template gallery で違いを確認する
+6. `next steps` と `preset next steps` を確認する
+7. 問題なければ `この project を作る`
 
 ### コマンドで作る
 

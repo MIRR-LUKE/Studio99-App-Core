@@ -106,6 +106,16 @@ export default async function ConsoleUsersPage() {
             }
           </strong>
         </div>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>MFA enabled</p>
+          <strong>
+            {
+              (users.docs as Array<Record<string, unknown>>).filter((user) =>
+                Boolean((user.security as { mfa?: { enabled?: boolean } } | undefined)?.mfa?.enabled),
+              ).length
+            }
+          </strong>
+        </div>
       </section>
 
       <section style={consoleSectionStyle}>
@@ -125,6 +135,18 @@ export default async function ConsoleUsersPage() {
                   <li>status: {displayValue(user.status)}</li>
                   <li>last login: {formatDate(user.lastLoginAt)}</li>
                   <li>organizations: {formatCount(getOrganizationCount(user.organizations))}</li>
+                  <li>
+                    MFA:{' '}
+                    {Boolean((user.security as { mfa?: { enabled?: boolean } } | undefined)?.mfa?.enabled)
+                      ? `enabled / ${displayValue((user.security as { mfa?: { preferredMethod?: unknown } } | undefined)?.mfa?.preferredMethod)} / verified ${formatDate((user.security as { mfa?: { verifiedAt?: unknown } } | undefined)?.mfa?.verifiedAt)}`
+                      : 'disabled'}
+                  </li>
+                  <li>
+                    recovery codes:{' '}
+                    {displayValue(
+                      (user.security as { mfa?: { recoveryCodeVersion?: unknown } } | undefined)?.mfa?.recoveryCodeVersion,
+                    )}
+                  </li>
                   <li>
                     admin: <Link href={getAdminCollectionHref('users')}>{getAdminCollectionHref('users')}</Link>
                   </li>

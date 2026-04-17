@@ -10,6 +10,7 @@ const quickLinks = [
   { href: '/console/projects/console', label: 'console project' },
   { href: '/console/projects', label: 'projects' },
   { href: '/console/factory', label: 'factory' },
+  { href: '/app/security', label: 'security' },
   { href: '/console/data', label: 'data' },
   { href: '/admin', label: 'admin' },
 ] as const
@@ -71,6 +72,13 @@ export default async function ConsolePage() {
           <p style={{ margin: '0 0 6px' }}>memberships</p>
           <strong>{formatCount(dashboard.membershipsCount)}</strong>
         </div>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>billing</p>
+          <strong>{dashboard.billing.billingStatus}</strong>
+          <p style={{ margin: '8px 0 0', color: '#52525b' }}>
+            seat remaining: {dashboard.billing.seatRemaining ?? 'unlimited'}
+          </p>
+        </div>
       </section>
 
       <section style={consoleSectionStyle}>
@@ -116,6 +124,13 @@ export default async function ConsolePage() {
               {' / '}
               {project.billing.note}
             </p>
+            <ul style={{ lineHeight: 1.7, margin: '12px 0 0', paddingLeft: '20px' }}>
+              <li>status: {dashboard.billing.billingStatus}</li>
+              <li>healthy: {String(dashboard.billing.billingHealthy)}</li>
+              <li>access enabled: {String(dashboard.billing.accessEnabled)}</li>
+              <li>seat limit: {dashboard.billing.seatLimit || 'unlimited'}</li>
+              <li>seat remaining: {dashboard.billing.seatRemaining ?? 'unlimited'}</li>
+            </ul>
           </article>
           <article style={consoleCardStyle}>
             <p style={{ margin: '0 0 8px' }}>

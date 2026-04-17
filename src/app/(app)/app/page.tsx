@@ -38,6 +38,10 @@ export default async function AppPage() {
           <p style={{ margin: '0 0 6px' }}>project factory</p>
           <strong>/console/factory</strong>
         </div>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>account security</p>
+          <strong>/app/security</strong>
+        </div>
       </section>
 
       <section style={consoleSectionStyle}>

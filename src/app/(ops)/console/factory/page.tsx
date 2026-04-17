@@ -20,6 +20,28 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+function Chips({ items }: { items: readonly string[] }) {
+  return (
+    <ul style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', listStyle: 'none', margin: 0, padding: 0 }}>
+      {items.map((item) => (
+        <li
+          key={item}
+          style={{
+            background: '#f4f4f5',
+            borderRadius: '999px',
+            color: '#27272a',
+            fontSize: '13px',
+            lineHeight: 1.4,
+            padding: '6px 10px',
+          }}
+        >
+          {item}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export default async function ConsoleFactoryPage() {
   const { req } = await getConsoleRequest('/console/factory')
 
@@ -43,7 +65,8 @@ export default async function ConsoleFactoryPage() {
         <p style={{ margin: 0 }}>Studio99 Console</p>
         <h1 style={consoleHeadingStyle}>Factory</h1>
         <p style={consoleMutedStyle}>
-          ここから project を作ります。manifest の確認、テンプレート選択、作成後の導線までひと続きです。
+          ここでは、template の違いを見比べてから project を作れます。routes / collections / flags /
+          use cases / preset next steps を同じ画面で揃えています。
         </p>
       </header>
 
@@ -77,14 +100,12 @@ export default async function ConsoleFactoryPage() {
         </div>
         <div style={consoleCardStyle}>
           <p style={{ margin: '0 0 6px' }}>next</p>
-          <strong>projectKey を決めて create</strong>
+          <strong>template を比べて projectKey を決める</strong>
         </div>
       </section>
 
-      <ProjectFactoryPanel templates={projectTemplateOptions} />
-
       <section style={consoleSectionStyle}>
-        <h2 style={consoleHeadingStyle}>テンプレートのひな形</h2>
+        <h2 style={consoleHeadingStyle}>template gallery</h2>
         <div style={{ display: 'grid', gap: '14px' }}>
           {projectTemplateOptions.map((template) => {
             const manifest = buildProjectBootstrapManifest({
@@ -99,12 +120,54 @@ export default async function ConsoleFactoryPage() {
                   <strong>{template.label}</strong>
                 </p>
                 <p style={consoleMutedStyle}>{template.description}</p>
-                <ul style={{ lineHeight: 1.7, margin: '10px 0 0', paddingLeft: '20px' }}>
-                  <li>collections: {manifest.collections.join(', ')}</li>
-                  <li>feature flags: {manifest.featureFlags.join(', ')}</li>
-                  <li>routes: {manifest.routes.join(', ')}</li>
-                  <li>docs: {manifest.docs.join(', ')}</li>
-                </ul>
+                <div style={{ display: 'grid', gap: '12px', marginTop: '12px' }}>
+                  <div>
+                    <p style={{ margin: '0 0 8px' }}>
+                      <strong>use cases</strong>
+                    </p>
+                    <Chips items={template.useCases} />
+                  </div>
+                  <div>
+                    <p style={{ margin: '0 0 8px' }}>
+                      <strong>generated routes</strong>
+                    </p>
+                    <ul style={{ lineHeight: 1.7, margin: 0, paddingLeft: '20px' }}>
+                      {manifest.routes.map((route) => (
+                        <li key={route}>{route}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p style={{ margin: '0 0 8px' }}>
+                      <strong>generated collections</strong>
+                    </p>
+                    <ul style={{ lineHeight: 1.7, margin: 0, paddingLeft: '20px' }}>
+                      {manifest.collections.map((collection) => (
+                        <li key={collection}>{collection}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p style={{ margin: '0 0 8px' }}>
+                      <strong>generated feature flags</strong>
+                    </p>
+                    <ul style={{ lineHeight: 1.7, margin: 0, paddingLeft: '20px' }}>
+                      {manifest.featureFlags.map((flag) => (
+                        <li key={flag}>{flag}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p style={{ margin: '0 0 8px' }}>
+                      <strong>preset next steps</strong>
+                    </p>
+                    <ol style={{ lineHeight: 1.7, margin: 0, paddingLeft: '20px' }}>
+                      {manifest.presetNextSteps.map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                </div>
                 <p style={{ margin: '10px 0 0' }}>
                   <Link href={getAdminCollectionHref('feature-flags')}>feature flags admin</Link>
                   {' / '}
@@ -118,6 +181,8 @@ export default async function ConsoleFactoryPage() {
           })}
         </div>
       </section>
+
+      <ProjectFactoryPanel templates={projectTemplateOptions} />
 
       <section style={consoleSectionStyle}>
         <h2 style={consoleHeadingStyle}>今ある project</h2>
