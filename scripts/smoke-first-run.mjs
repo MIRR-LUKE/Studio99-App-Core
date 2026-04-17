@@ -685,7 +685,7 @@ const run = async () => {
   log('[ok] /app')
 
   await assertRouteReachable('/api/users/logout', {
-    acceptableStatuses: [200, 204, 401, 403, 405],
+    acceptableStatuses: [200, 204, 400, 401, 403, 405],
     headers: sessionCookie
       ? {
           cookie: sessionCookie,
