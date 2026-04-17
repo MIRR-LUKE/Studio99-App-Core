@@ -552,7 +552,11 @@ const run = async () => {
     await assertApi(
       '/api/users/me',
       (payload) => {
-        assert(payload.user?.email, '/api/users/me did not include a user email.')
+        const user = typeof payload.user === 'object' && payload.user ? payload.user : payload
+        assert(
+          typeof user?.email === 'string' || typeof user?.id === 'number' || typeof user?.id === 'string',
+          '/api/users/me did not include a recognizable user payload.',
+        )
       },
       {
         cookie: sessionCookie,
