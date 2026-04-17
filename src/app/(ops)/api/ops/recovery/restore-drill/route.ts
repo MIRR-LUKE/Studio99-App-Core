@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const body = (await request.json()) as { confirm?: boolean; reason?: string }
+  const body = (await request.json()) as { confirm?: boolean; reason?: string; snapshotAt?: string }
   const reason = requireDangerousActionReason(body)
 
   const rateLimited = await enforceRateLimit({
@@ -56,7 +56,11 @@ export async function POST(request: Request) {
     return rateLimited
   }
 
-  const drill = await recordRestoreDrill({ reason, req })
+  const drill = await recordRestoreDrill({
+    reason,
+    req,
+    snapshotAt: body.snapshotAt,
+  })
 
   return applyPayloadResponseHeaders(NextResponse.json(drill), responseHeaders, {
     authenticated: true,

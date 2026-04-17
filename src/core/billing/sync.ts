@@ -375,10 +375,12 @@ export const processStripeBillingEvent = async ({
 
 export const retryBillingEventByID = async ({
   billingEventId,
+  organizationIdOverride,
   reason = 'manual billing event retry',
   req,
 }: {
   billingEventId: number | string
+  organizationIdOverride?: null | number | string
   reason?: string
   req: PayloadRequest
 }) => {
@@ -396,7 +398,9 @@ export const retryBillingEventByID = async ({
   const nextRetryCount = ((billingEvent as { retryCount?: number }).retryCount ?? 0) + 1
   const stripeEventId = (billingEvent as { stripeEventId?: string }).stripeEventId ?? null
   const source = (billingEvent as { source?: string }).source ?? 'stripe'
-  const organizationId = resolveDocumentId((billingEvent as { organization?: unknown }).organization ?? null)
+  const organizationId =
+    resolveDocumentId((billingEvent as { organization?: unknown }).organization ?? null) ??
+    (organizationIdOverride ? String(organizationIdOverride) : null)
 
   if ((billingEvent as { source?: string }).source === 'meter') {
     await api.update({
@@ -431,6 +435,30 @@ export const retryBillingEventByID = async ({
     throw new Error('Billing event raw payload is missing.')
   }
 
+  const retryPayload = JSON.parse(JSON.stringify(rawPayload)) as {
+    data?: {
+      object?: Record<string, unknown>
+    }
+    id?: string
+    type?: string
+  }
+
+  if (organizationIdOverride) {
+    const object = retryPayload.data?.object
+
+    if (object) {
+      const existingMetadata =
+        typeof object.metadata === 'object' && object.metadata !== null
+          ? (object.metadata as Record<string, unknown>)
+          : {}
+
+      object.metadata = {
+        ...existingMetadata,
+        organizationId: String(organizationIdOverride),
+      }
+    }
+  }
+
   await api.update({
     collection: 'billing-events',
     depth: 0,
@@ -444,7 +472,7 @@ export const retryBillingEventByID = async ({
 
   try {
     await processStripeBillingEvent({
-      event: rawPayload as {
+      event: retryPayload as {
         data: { object: Record<string, unknown> }
         id: string
         type: string
@@ -470,6 +498,11 @@ export const retryBillingEventByID = async ({
         retryCount: nextRetryCount,
         source,
         stripeEventId,
+        ...(organizationIdOverride
+          ? {
+              organizationIdOverride: String(organizationIdOverride),
+            }
+          : {}),
       },
       organizationId,
       reason,
@@ -500,6 +533,11 @@ export const retryBillingEventByID = async ({
         retryCount: nextRetryCount,
         source,
         stripeEventId,
+        ...(organizationIdOverride
+          ? {
+              organizationIdOverride: String(organizationIdOverride),
+            }
+          : {}),
       },
       organizationId,
       reason,

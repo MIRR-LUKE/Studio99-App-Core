@@ -48,7 +48,11 @@ export async function POST(request: Request, { params }: RouteContext) {
     )
   }
 
-  const body = (await request.json()) as { confirm?: boolean; reason?: string }
+  const body = (await request.json()) as {
+    confirm?: boolean
+    organizationId?: null | number | string
+    reason?: string
+  }
   const reason = requireDangerousActionReason(body)
 
   const { id } = await params
@@ -67,6 +71,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   try {
     await retryBillingEventForOps({
       billingEventId: id,
+      organizationId: body.organizationId,
       reason,
       req,
     })

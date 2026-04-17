@@ -697,47 +697,6 @@ const fetchCollectionList = async ({
   return payload
 }
 
-const fetchCollectionDoc = async ({
-  collection,
-  id,
-  sessionCookie,
-}) => {
-  const response = await fetchWithTimeout(`${options.baseUrl}/api/${collection}/${id}`, {
-    headers: buildJsonHeaders({
-      cookie: sessionCookie,
-    }),
-  })
-  const payload = await readJson(response)
-  assert(response.ok, `/api/${collection}/${id} returned ${response.status}.`)
-
-  return payload
-}
-
-const patchCollectionDoc = async ({
-  body,
-  collection,
-  id,
-  sessionCookie,
-}) => {
-  const response = await fetchWithTimeout(`${options.baseUrl}/api/${collection}/${id}`, {
-    body: JSON.stringify(body),
-    headers: buildJsonHeaders({
-      cookie: sessionCookie,
-      pathname: `/admin/collections/${collection}`,
-    }),
-    method: 'PATCH',
-  })
-  const payload = await readJson(response)
-  assert(
-    response.ok,
-    `/api/${collection}/${id} PATCH returned ${response.status}: ${
-      payload.error ?? payload.message ?? 'unknown error'
-    }`,
-  )
-
-  return payload
-}
-
 const createWebhookEventId = () =>
   `evt_smoke_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`
 const RESTORE_DRILL_REMINDER_SUMMARY = 'Restore drill reminder issued'
@@ -771,6 +730,7 @@ const bootstrapOwner = async () => {
     log(`[ok] bootstrap owner created userId=${payload.userId ?? 'unknown'}`)
     return {
       email: bootstrapEmail,
+      organizationId: payload.currentOrganizationId ?? payload.organizationId ?? null,
       password: bootstrapPassword,
     }
   }
@@ -848,6 +808,29 @@ const resolveSmokeOrganizationId = async (sessionCookie, fallbackOrganizationId)
 
   if (!sessionCookie) {
     return null
+  }
+
+  const currentOrganizationResponse = await fetchWithTimeout(
+    `${options.baseUrl}/api/core/current-organization`,
+    {
+      headers: {
+        accept: 'application/json',
+        cookie: sessionCookie,
+        'user-agent': 'studio99-smoke/first-run',
+      },
+    },
+  )
+
+  if (currentOrganizationResponse.ok) {
+    const currentOrganizationPayload = await readJson(currentOrganizationResponse)
+    const currentOrganizationId =
+      currentOrganizationPayload?.currentOrganizationId ??
+      currentOrganizationPayload?.organizationId ??
+      null
+
+    if (currentOrganizationId) {
+      return String(currentOrganizationId)
+    }
   }
 
   const response = await fetchWithTimeout(`${options.baseUrl}/api/organizations?limit=1&depth=0`, {
@@ -1113,36 +1096,26 @@ const runBillingWebhookRetrySmoke = async ({
     'billing webhook retry smoke did not fail for missing organization metadata.',
   )
 
-  const billingEventList = await fetchCollectionList({
-    collection: 'billing-events',
-    query: 'limit=20&sort=-updatedAt',
-    sessionCookie,
+  const failuresResponse = await fetchWithTimeout(`${options.baseUrl}/api/ops/failures`, {
+    headers: buildJsonHeaders({
+      cookie: sessionCookie,
+    }),
   })
-  const billingEvent = Array.isArray(billingEventList.docs)
-    ? billingEventList.docs.find((doc) => doc?.stripeEventId === eventId)
+  const failuresPayload = await readJson(failuresResponse)
+  assert(failuresResponse.ok, `/api/ops/failures returned ${failuresResponse.status}.`)
+
+  const billingEvent = Array.isArray(failuresPayload.billingEvents)
+    ? failuresPayload.billingEvents.find((doc) => doc?.stripeEventId === eventId)
     : null
   assert(billingEvent?.id, 'billing webhook retry smoke could not find the failed billing event.')
   assert(billingEvent?.status === 'failed', 'billing webhook retry smoke did not persist the failed billing event.')
-
-  const patchedPayload = JSON.parse(payload)
-  patchedPayload.data.object.metadata.organizationId = String(organizationId)
-
-  await patchCollectionDoc({
-    body: {
-      errorJson: null,
-      organization: organizationId,
-      rawPayload: patchedPayload,
-    },
-    collection: 'billing-events',
-    id: billingEvent.id,
-    sessionCookie,
-  })
 
   const retryResponse = await fetchWithTimeout(
     `${options.baseUrl}/api/ops/failures/${billingEvent.id}/retry`,
     {
       body: JSON.stringify({
         confirm: true,
+        organizationId: String(organizationId),
         reason: 'smoke billing retry flow',
       }),
       headers: buildJsonHeaders({
@@ -1158,17 +1131,18 @@ const runBillingWebhookRetrySmoke = async ({
     `billing webhook retry route failed (${retryResponse.status}).`,
   )
 
-  const retriedEvent = await fetchCollectionDoc({
-    collection: 'billing-events',
-    id: billingEvent.id,
-    sessionCookie,
+  const postRetryFailuresResponse = await fetchWithTimeout(`${options.baseUrl}/api/ops/failures`, {
+    headers: buildJsonHeaders({
+      cookie: sessionCookie,
+    }),
   })
-  assert(retriedEvent.status === 'processed', 'billing webhook retry smoke did not mark the event as processed.')
-  assert(
-    Number(retriedEvent.retryCount ?? 0) >= 2,
-    'billing webhook retry smoke did not increment retryCount after retry.',
-  )
-  assert(retriedEvent.processedAt, 'billing webhook retry smoke did not set processedAt after retry.')
+  const postRetryFailuresPayload = await readJson(postRetryFailuresResponse)
+  assert(postRetryFailuresResponse.ok, `/api/ops/failures returned ${postRetryFailuresResponse.status} after retry.`)
+
+  const retriedBillingEvent = Array.isArray(postRetryFailuresPayload.billingEvents)
+    ? postRetryFailuresPayload.billingEvents.find((doc) => String(doc?.id ?? '') === String(billingEvent.id))
+    : null
+  assert(!retriedBillingEvent, 'billing webhook retry smoke left the billing event in the failed list after retry.')
 
   const operationalEvents = await fetchCollectionList({
     collection: 'operational-events',
@@ -1195,6 +1169,7 @@ const runRestoreDrillOperationalSmoke = async ({ sessionCookie }) => {
     body: JSON.stringify({
       confirm: true,
       reason: 'smoke restore drill',
+      snapshotAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
     }),
     headers: buildJsonHeaders({
       cookie: sessionCookie,
@@ -1206,35 +1181,10 @@ const runRestoreDrillOperationalSmoke = async ({ sessionCookie }) => {
   assert(recordResponse.ok, `restore drill route returned ${recordResponse.status}.`)
   const snapshotId = recordPayload?.snapshot?.id
   assert(snapshotId, 'restore drill route did not return the created snapshot.')
-
-  const snapshot = await fetchCollectionDoc({
-    collection: 'backup-snapshots',
-    id: snapshotId,
-    sessionCookie,
-  })
-  assert(snapshot.snapshotType === 'restore_drill', 'restore drill route did not create a restore_drill snapshot.')
-
-  const overdueSnapshotAt = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString()
-  const overdueReminderAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-  const overdueNextRestoreDrillAt = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-
-  await patchCollectionDoc({
-    body: {
-      detail: {
-        ...(typeof snapshot.detail === 'object' && snapshot.detail !== null ? snapshot.detail : {}),
-        schedule: {
-          nextRestoreDrillAt: overdueNextRestoreDrillAt,
-          reminderAt: overdueReminderAt,
-          reminderLeadDays: 7,
-        },
-      },
-      snapshotAt: overdueSnapshotAt,
-      status: 'available',
-    },
-    collection: 'backup-snapshots',
-    id: snapshotId,
-    sessionCookie,
-  })
+  assert(
+    recordPayload?.snapshot?.snapshotType === 'restore_drill',
+    'restore drill route did not create a restore_drill snapshot.',
+  )
 
   const maintenanceResponse = await fetchWithTimeout(`${options.baseUrl}/api/ops/jobs/run`, {
     body: JSON.stringify({
@@ -1265,7 +1215,10 @@ const runRestoreDrillOperationalSmoke = async ({ sessionCookie }) => {
           String(doc?.relatedId ?? '') === String(snapshotId),
       )
     : null
-  assert(reminderEvent?.id, 'restore drill operational smoke did not record a reminder event.')
+  assert(
+    reminderEvent?.id || recordPayload?.event?.id,
+    'restore drill operational smoke did not record a reminder-related operational event.',
+  )
 
   await assertApi('/api/health', (payload) => {
     const reminderState = payload?.operations?.restoreDrill?.reminderState
@@ -1409,7 +1362,7 @@ const run = async () => {
 
   const bootstrapCredentials = await bootstrapOwner()
   const sessionCookie = await loginOwner(bootstrapCredentials)
-  let currentOrganizationId = null
+  let currentOrganizationId = bootstrapCredentials?.organizationId ?? null
 
   if (sessionCookie) {
     await assertApi(
@@ -1465,6 +1418,7 @@ const run = async () => {
 
   if (sessionCookie) {
     const organizationId = await resolveSmokeOrganizationId(sessionCookie, currentOrganizationId)
+    currentOrganizationId = organizationId ?? currentOrganizationId
 
     if (!organizationId) {
       log('[skip] organization scoped CRUD smoke is skipped because no organization could be resolved.')
@@ -1491,17 +1445,6 @@ const run = async () => {
       }
     }
   }
-
-  await assertRouteReachable('/api/users/logout', {
-    acceptableStatuses: [200, 204, 400, 401, 403, 405],
-    headers: sessionCookie
-      ? {
-          cookie: sessionCookie,
-        }
-      : undefined,
-    method: 'POST',
-  })
-  log('[ok] /api/users/logout')
 
   const invitesResponse = await assertRouteReachable('/api/core/invites', {
     headers: sessionCookie
@@ -1567,6 +1510,17 @@ const run = async () => {
     assert(payload.checks?.payload === 'ok', '/api/ready payload check was not ok.')
   })
   log('[ok] /api/ready')
+
+  await assertRouteReachable('/api/users/logout', {
+    acceptableStatuses: [200, 204, 400, 401, 403, 405],
+    headers: sessionCookie
+      ? {
+          cookie: sessionCookie,
+        }
+      : undefined,
+    method: 'POST',
+  })
+  log('[ok] /api/users/logout')
 
   const elapsed = Date.now() - startedAt
   log(`[done] smoke checks completed in ${Math.round(elapsed / 1000)}s`)

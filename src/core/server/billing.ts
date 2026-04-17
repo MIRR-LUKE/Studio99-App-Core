@@ -195,10 +195,12 @@ export const createMeterEventForOrganization = async ({
 
 export const retryBillingEventForOps = async ({
   billingEventId,
+  organizationId,
   reason,
   req,
 }: {
   billingEventId: number | string
+  organizationId?: null | number | string
   reason?: string
   req: PayloadRequest
-}) => retryBillingEventByID({ billingEventId, reason, req })
+}) => retryBillingEventByID({ billingEventId, organizationIdOverride: organizationId, reason, req })

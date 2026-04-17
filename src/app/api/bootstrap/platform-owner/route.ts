@@ -169,7 +169,9 @@ export async function POST(request: Request) {
       adminUrl: '/admin',
       appUrl: '/app',
       consoleUrl: '/console',
+      currentOrganizationId: owner.currentOrganization ?? null,
       ok: true,
+      organizationId: owner.currentOrganization ?? null,
       opsUrl: '/ops',
       userId: owner.id,
     })

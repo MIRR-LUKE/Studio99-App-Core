@@ -78,6 +78,7 @@ type RecoveryEventArgs = {
   detail?: Record<string, unknown>
   reason: string
   req: PayloadRequest
+  snapshotAt?: string
 }
 
 const getRecordedBy = (req: PayloadRequest) => resolveDocumentId(req.user?.id ?? null)
@@ -276,9 +277,12 @@ export const recordBackupSnapshot = async ({
 export const recordRestoreDrill = async ({
   reason,
   req,
+  snapshotAt: snapshotAtInput,
 }: RecoveryEventArgs) => {
   const api = createSystemLocalApi(req, 'record restore drill')
-  const snapshotAt = new Date().toISOString()
+  const snapshotAt = snapshotAtInput && !Number.isNaN(new Date(snapshotAtInput).getTime())
+    ? new Date(snapshotAtInput).toISOString()
+    : new Date().toISOString()
   const schedule = getRestoreDrillSchedule(snapshotAt)
   const snapshot = await api.create({
     collection: 'backup-snapshots',
