@@ -6,6 +6,13 @@
 普段のデータ編集は `/admin`、普段の利用は `/app`、表向きの管理は `/console` です。
 `/ops` に残っている役割は、段階的に `/console/ops` へ寄せます。
 
+`/console` の中では、役割ごとに画面を分けています。
+
+- `/console/billing`: 課金状態と失敗イベント
+- `/console/jobs`: queue と再実行
+- `/console/recovery`: backup と restore drill
+- `/console/ops`: 危険操作と failure console
+
 ## いまの位置づけ
 
 - `/ops` に来ても `/console/ops` へ送る
@@ -20,6 +27,18 @@
 - recovery / backup / restore drill
 - dangerous action の入口
 
+## `/console/jobs` との分担
+
+`/console/ops` は「見る」「判断する」「危険操作を実行する」場所です。
+`/console/jobs` は queue の状態確認と retry の入口です。
+
+主な API:
+
+- `POST /api/ops/jobs/run`
+- `POST /api/ops/jobs/:id/retry`
+
+`/console/jobs` では queue 別の状態を見て、必要なら再実行に進みます。
+
 ## project factory
 
 project factory の表入口は `/console/factory` です。
@@ -33,7 +52,7 @@ project factory の表入口は `/console/factory` です。
 
 ## recovery
 
-`/ops` から触る recovery 系 API:
+`/console/recovery` から触る recovery 系 API:
 
 - `POST /api/ops/recovery/backup`
 - `POST /api/ops/recovery/restore-drill`
@@ -52,6 +71,9 @@ project factory の表入口は `/console/factory` です。
 - `POST /api/ops/jobs/run`
 - `POST /api/ops/jobs/:id/retry`
 
+`/console/ops` から危険操作を実行するときは、必ず `confirm: true` と 8 文字以上の `reason` を求めます。
+失敗イベントの retry も、理由が残る形で扱います。
+
 ## 危険操作のルール
 
 dangerous action には次が必要です。
@@ -69,3 +91,12 @@ dangerous action には次が必要です。
 - `/ops`: legacy redirect
 
 この分離を守ると、あとで崩れにくくなります。
+
+## 使い方の流れ
+
+1. `/console` を開く
+2. billing の確認は `/console/billing`
+3. queue と再実行は `/console/jobs`
+4. backup と restore drill は `/console/recovery`
+5. 危険操作や failure console は `/console/ops`
+6. 迷ったら `/console` に戻る

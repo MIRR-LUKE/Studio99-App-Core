@@ -2,9 +2,12 @@ import Link from 'next/link'
 
 import { getConsoleOverview } from '@/core/ops/console'
 import { CORE_JOB_QUEUES } from '@/core/ops/jobs'
+
+import { ConsoleActionForm } from '../_components/console-action-form'
 import {
   canViewConsole,
   canViewConsoleOps,
+  consoleCalloutStyle,
   consoleCardGridStyle,
   consoleCardStyle,
   consoleHeadingStyle,
@@ -49,6 +52,9 @@ export default async function ConsoleOpsPage() {
 
       <section style={consoleSectionStyle}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+          <Link href="/console/billing" style={consoleLinkStyle}>
+            billing
+          </Link>
           <Link href="/console/recovery" style={consoleLinkStyle}>
             recovery
           </Link>
@@ -84,6 +90,18 @@ export default async function ConsoleOpsPage() {
       </section>
 
       <section style={consoleSectionStyle}>
+        <div style={consoleCalloutStyle}>
+          <p style={{ margin: '0 0 8px' }}>
+            <strong>ops routing</strong>
+          </p>
+          <p style={consoleMutedStyle}>
+            日常の課金監視は billing、queue は jobs、backup と restore drill は recovery に寄せています。ここは
+            “どこを見るか” と “何を押せるか” を一画面で掴む場所です。
+          </p>
+        </div>
+      </section>
+
+      <section style={consoleSectionStyle}>
         <h2 style={consoleHeadingStyle}>Queues</h2>
         <p style={consoleMutedStyle}>{CORE_JOB_QUEUES.join(' / ')}</p>
       </section>
@@ -91,9 +109,33 @@ export default async function ConsoleOpsPage() {
       {canUseDangerousActions ? (
         <section style={consoleSectionStyle}>
           <h2 style={consoleHeadingStyle}>Dangerous actions</h2>
-          <p style={consoleMutedStyle}>
-            実行系の操作はまだ /api 側に寄っています。ここでは入口だけを出し、実装は audit と confirmation を必ず通します。
-          </p>
+          <div style={consoleCardGridStyle}>
+            <ConsoleActionForm
+              action="/api/ops/recovery/backup"
+              buttonLabel="record backup snapshot"
+              confirmLabel="snapshot を記録します"
+              description="ops から手動 snapshot を記録します。"
+              requireConfirm
+              requireReason
+              successLabel="backup snapshot を記録しました。"
+            />
+            <ConsoleActionForm
+              action="/api/ops/recovery/restore-drill"
+              buttonLabel="record restore drill"
+              confirmLabel="restore drill を記録します"
+              description="restore drill の実施記録を残します。"
+              requireConfirm
+              requireReason
+              successLabel="restore drill を記録しました。"
+            />
+            <ConsoleActionForm
+              action="/api/ops/jobs/run"
+              buttonLabel="run maintenance queue"
+              description="maintenance queue を手動で進めます。"
+              payload={{ queue: 'maintenance' }}
+              successLabel="maintenance queue の実行を受け付けました。"
+            />
+          </div>
         </section>
       ) : null}
 
@@ -119,6 +161,16 @@ export default async function ConsoleOpsPage() {
               </p>
               <p style={consoleMutedStyle}>
                 billing failed: {formatCount(overview.failures.billingEvents)} / event retry は billing 画面から確認できます。
+              </p>
+            </article>
+          ) : null}
+          {overview.failures.operationalEvents > 0 ? (
+            <article style={consoleCardStyle}>
+              <p style={{ margin: '0 0 8px' }}>
+                <strong>operational event summary</strong>
+              </p>
+              <p style={consoleMutedStyle}>
+                ops failure: {formatCount(overview.failures.operationalEvents)} / 詳細は admin と recovery の両方から確認できます。
               </p>
             </article>
           ) : null}
