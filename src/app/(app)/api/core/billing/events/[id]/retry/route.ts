@@ -11,6 +11,7 @@ import {
   enforceRateLimit,
   requireRecentAuthentication,
 } from '@/core/security'
+import { requireDangerousActionReason } from '@/core/ops/protocol'
 
 type RouteContext = {
   params: Promise<{
@@ -47,6 +48,9 @@ export async function POST(request: Request, { params }: RouteContext) {
     )
   }
 
+  const body = (await request.json()) as { confirm?: boolean; reason?: string }
+  const reason = requireDangerousActionReason(body)
+
   const { id } = await params
 
   const rateLimited = await enforceRateLimit({
@@ -63,6 +67,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   try {
     await retryBillingEventForOps({
       billingEventId: id,
+      reason,
       req,
     })
 

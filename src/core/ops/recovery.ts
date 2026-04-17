@@ -268,22 +268,7 @@ export const recordRestoreDrill = async ({
   const api = createSystemLocalApi(req, 'record restore drill')
   const snapshotAt = new Date().toISOString()
   const schedule = getRestoreDrillSchedule(snapshotAt)
-  const drill = await api.create({
-    collection: 'operational-events',
-    depth: 0,
-    data: {
-      detail: {
-        ...getRecoveryPolicy(),
-        schedule,
-      },
-      eventType: 'restore_drill',
-      reason,
-      status: 'succeeded',
-      summary: 'Restore drill recorded',
-    },
-  })
-
-  await api.create({
+  const snapshot = await api.create({
     collection: 'backup-snapshots',
     depth: 0,
     data: {
@@ -304,7 +289,28 @@ export const recordRestoreDrill = async ({
     },
   })
 
-  return drill
+  const drill = await api.create({
+    collection: 'operational-events',
+    depth: 0,
+    data: {
+      detail: {
+        ...getRecoveryPolicy(),
+        schedule,
+        snapshotId: snapshot.id,
+      },
+      eventType: 'restore_drill',
+      reason,
+      relatedCollection: 'backup-snapshots',
+      relatedId: String(snapshot.id),
+      status: 'succeeded',
+      summary: 'Restore drill recorded',
+    },
+  })
+
+  return {
+    event: drill,
+    snapshot,
+  }
 }
 
 export const maybeRecordRestoreDrillReminder = async ({ req }: { req: PayloadRequest }) => {
@@ -328,6 +334,7 @@ export const maybeRecordRestoreDrillReminder = async ({ req }: { req: PayloadReq
     depth: 0,
     data: {
       detail: {
+        latestRestoreDrillId: status.latestRestoreDrillId,
         latestBackupAt: status.latestBackupAt,
         latestRestoreDrillAt: status.latestRestoreDrillAt,
         nextReminderAt: status.nextReminderAt,
@@ -339,6 +346,8 @@ export const maybeRecordRestoreDrillReminder = async ({ req }: { req: PayloadReq
       eventType: 'maintenance_action',
       queueName: 'maintenance',
       reason: 'nightly maintenance restore drill reminder sweep',
+      relatedCollection: status.latestRestoreDrillId ? 'backup-snapshots' : undefined,
+      relatedId: status.latestRestoreDrillId ?? undefined,
       status: 'succeeded',
       summary: RESTORE_DRILL_REMINDER_SUMMARY,
     },

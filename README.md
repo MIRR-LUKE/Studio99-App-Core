@@ -66,6 +66,26 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 
 迷ったら、まずは `/bootstrap/owner` → `/admin` → `/console` → `/app` の順で触れば大丈夫です。
 
+### billing を本当に確認するとき
+
+1. `/console/billing` を開く
+2. Stripe CLI で `stripe listen --events checkout.session.completed,invoice.payment_failed,invoice.paid --forward-to localhost:3000/api/core/billing/webhook` を流す
+3. 別ターミナルで `stripe trigger checkout.session.completed` のように event を流す
+4. `billing-events` に event が保存されることを確認する
+5. 失敗 event があれば `/console/billing` の retry から再処理する
+
+細かい運用は [docs/billing.md](docs/billing.md) にまとめています。
+
+### restore drill を運用として回すとき
+
+1. `/console/recovery` を開く
+2. `record restore drill` で実施記録を残す
+3. `Recent restore drills` と `Recent backup snapshots` を確認する
+4. 必要なら `run maintenance queue` を押して reminder と retention sweep を進める
+5. `operational-events` と `/api/health` で次回 drill 状態を確認する
+
+細かい運用は [docs/backup-restore.md](docs/backup-restore.md) にまとめています。
+
 ## この core を使って最初の app を作る最短フロー
 
 ここは「この土台の上に、自分の最初の app を1本立てる」ときの最短コースです。

@@ -108,7 +108,8 @@ restore drill は、実際に戻せるかを定期確認するための手順で
 - `POST /api/ops/recovery/restore-drill`
 - reason と confirmation を必須にする
 - 実行結果を `operational-events` に残す
-- 必要なら `backup-snapshots` に drill metadata を残す
+- `backup-snapshots` に drill metadata を残す
+- `operational-events` から snapshot へ辿れるように関連 ID を残す
 - `backup-snapshots` の `detail.schedule` に次回 drill と reminder の目安を残す
 
 `/console/recovery` では、この実行導線をそのまま見える形で出します。
@@ -154,3 +155,13 @@ soft delete した media は、ops 経由で戻せるようにします。
 4. nightly maintenance が reminder と retention sweep を進める
 5. 結果を `operational-events` で追う
 6. メディア個別の確認は `/console/media` に戻る
+
+## 運用として回す restore drill の最短手順
+
+1. `/console/recovery` で `record restore drill` を押す
+2. `Recent restore drills` と `Recent backup snapshots` に新しい記録が出ることを確認する
+3. drill の期限が近い状態か、期限が近い snapshot を想定したいときは `run maintenance queue` を押す
+4. `operational-events` に `Restore drill reminder issued` が残ることを確認する
+5. `/api/health` の `operations.restoreDrill` で `reminderState` と `nextRestoreDrillAt` を確認する
+
+この repo の smoke は、restore drill の route 実行だけでなく、maintenance queue を通した reminder 記録まで見ます。

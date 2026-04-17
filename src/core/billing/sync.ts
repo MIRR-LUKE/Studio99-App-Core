@@ -29,6 +29,41 @@ type StripeSubscriptionLike = {
 const toIso = (unixSeconds?: number) =>
   typeof unixSeconds === 'number' ? new Date(unixSeconds * 1000).toISOString() : undefined
 
+const recordBillingRetryOperationalEvent = async ({
+  billingEventId,
+  detail,
+  reason,
+  req,
+  status,
+  summary,
+}: {
+  billingEventId: number | string
+  detail?: Record<string, unknown>
+  reason: string
+  req: PayloadRequest
+  status: 'failed' | 'succeeded'
+  summary: string
+}) => {
+  const api = createSystemLocalApi(req, 'record billing retry operational event')
+
+  return api.create({
+    collection: 'operational-events',
+    depth: 0,
+    data: {
+      detail: {
+        billingEventId: String(billingEventId),
+        ...detail,
+      },
+      eventType: status === 'failed' ? 'webhook_failure' : 'maintenance_action',
+      reason,
+      relatedCollection: 'billing-events',
+      relatedId: String(billingEventId),
+      status,
+      summary,
+    },
+  })
+}
+
 export const syncOrganizationSeatSnapshot = async ({
   organizationId,
   req,
@@ -337,9 +372,11 @@ export const processStripeBillingEvent = async ({
 
 export const retryBillingEventByID = async ({
   billingEventId,
+  reason = 'manual billing event retry',
   req,
 }: {
   billingEventId: number | string
+  reason?: string
   req: PayloadRequest
 }) => {
   const api = createSystemLocalApi(req, 'retry billing event')
@@ -353,6 +390,10 @@ export const retryBillingEventByID = async ({
     throw new Error('Billing event not found.')
   }
 
+  const nextRetryCount = ((billingEvent as { retryCount?: number }).retryCount ?? 0) + 1
+  const stripeEventId = (billingEvent as { stripeEventId?: string }).stripeEventId ?? null
+  const source = (billingEvent as { source?: string }).source ?? 'stripe'
+
   if ((billingEvent as { source?: string }).source === 'meter') {
     await api.update({
       collection: 'billing-events',
@@ -360,10 +401,23 @@ export const retryBillingEventByID = async ({
       id: billingEventId,
       data: {
         processedAt: new Date().toISOString(),
-        retryCount: ((billingEvent as { retryCount?: number }).retryCount ?? 0) + 1,
+        retryCount: nextRetryCount,
         status: 'processed',
       },
     })
+
+    await recordBillingRetryOperationalEvent({
+      billingEventId,
+      detail: {
+        retryCount: nextRetryCount,
+        source,
+      },
+      reason,
+      req,
+      status: 'succeeded',
+      summary: 'Billing event retry processed',
+    })
+
     return
   }
 
@@ -372,24 +426,81 @@ export const retryBillingEventByID = async ({
     throw new Error('Billing event raw payload is missing.')
   }
 
-  await processStripeBillingEvent({
-    event: rawPayload as {
-      data: { object: Record<string, unknown> }
-      id: string
-      type: string
-    },
-    req,
-  })
-
   await api.update({
     collection: 'billing-events',
     depth: 0,
     id: billingEventId,
     data: {
       errorJson: null,
-      processedAt: new Date().toISOString(),
-      retryCount: ((billingEvent as { retryCount?: number }).retryCount ?? 0) + 1,
-      status: 'processed',
+      retryCount: nextRetryCount,
+      status: 'queued',
     },
   })
+
+  try {
+    await processStripeBillingEvent({
+      event: rawPayload as {
+        data: { object: Record<string, unknown> }
+        id: string
+        type: string
+      },
+      req,
+    })
+
+    await api.update({
+      collection: 'billing-events',
+      depth: 0,
+      id: billingEventId,
+      data: {
+        errorJson: null,
+        processedAt: new Date().toISOString(),
+        retryCount: nextRetryCount,
+        status: 'processed',
+      },
+    })
+
+    await recordBillingRetryOperationalEvent({
+      billingEventId,
+      detail: {
+        retryCount: nextRetryCount,
+        source,
+        stripeEventId,
+      },
+      reason,
+      req,
+      status: 'succeeded',
+      summary: 'Billing event retry processed',
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to retry billing event.'
+
+    await api.update({
+      collection: 'billing-events',
+      depth: 0,
+      id: billingEventId,
+      data: {
+        errorJson: {
+          message,
+        },
+        retryCount: nextRetryCount,
+        status: 'failed',
+      },
+    })
+
+    await recordBillingRetryOperationalEvent({
+      billingEventId,
+      detail: {
+        message,
+        retryCount: nextRetryCount,
+        source,
+        stripeEventId,
+      },
+      reason,
+      req,
+      status: 'failed',
+      summary: 'Billing event retry failed',
+    })
+
+    throw error
+  }
 }
