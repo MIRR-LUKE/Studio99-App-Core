@@ -3,6 +3,7 @@
 import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import Stripe from 'stripe'
 
 import { runSecurityRouteAudit } from './security-route-audit.mjs'
 
@@ -388,6 +389,9 @@ const getCookieHeader = (response) =>
     .filter(Boolean)
     .join('; ')
 
+const createWebhookEventId = () =>
+  `evt_smoke_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`
+
 const bootstrapOwner = async () => {
   if (!bootstrapToken) {
     log('[skip] BOOTSTRAP_OWNER_TOKEN is not set, owner bootstrap POST is skipped.')
@@ -482,6 +486,201 @@ const loginOwner = async (credentials) => {
   }
 
   return cookieHeader
+}
+
+const createAdminCrudSmokeKey = () =>
+  `smoke-admin-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`
+
+const runAdminCrudSmoke = async (sessionCookie) => {
+  if (!sessionCookie) {
+    log('[skip] /admin CRUD smoke is skipped because no authenticated owner session is available.')
+    return
+  }
+
+  const key = createAdminCrudSmokeKey()
+  const baseHeaders = {
+    cookie: sessionCookie,
+    'content-type': 'application/json',
+    'user-agent': 'studio99-smoke/first-run',
+  }
+
+  let createdId = null
+
+  try {
+    const createResponse = await fetchWithTimeout(`${options.baseUrl}/api/feature-flags`, {
+      body: JSON.stringify({
+        enabled: false,
+        environment: 'development',
+        key,
+        notes: 'admin CRUD smoke',
+        scopeId: '*',
+        scopeType: 'platform',
+      }),
+      headers: {
+        accept: 'application/json',
+        ...baseHeaders,
+      },
+      method: 'POST',
+    })
+    const createdPayload = await readJson(createResponse)
+    assert(
+      createResponse.ok,
+      `/api/feature-flags POST returned ${createResponse.status}: ${
+        createdPayload.error ?? createdPayload.message ?? 'unknown error'
+      }`,
+    )
+    assert(typeof createdPayload.id === 'string' && createdPayload.id.length > 0, '/api/feature-flags POST did not return an id.')
+    assert(createdPayload.key === key, '/api/feature-flags POST did not preserve the requested key.')
+    createdId = createdPayload.id
+
+    const readResponse = await fetchWithTimeout(`${options.baseUrl}/api/feature-flags/${createdId}`, {
+      headers: {
+        accept: 'application/json',
+        ...baseHeaders,
+      },
+    })
+    const readPayload = await readJson(readResponse)
+    assert(
+      readResponse.ok,
+      `/api/feature-flags/${createdId} GET returned ${readResponse.status}: ${
+        readPayload.error ?? readPayload.message ?? 'unknown error'
+      }`,
+    )
+    assert(readPayload.id === createdId, '/api/feature-flags GET did not return the created document.')
+    assert(readPayload.key === key, '/api/feature-flags GET did not return the created key.')
+
+    const updateResponse = await fetchWithTimeout(`${options.baseUrl}/api/feature-flags/${createdId}`, {
+      body: JSON.stringify({
+        enabled: true,
+        notes: 'admin CRUD smoke updated',
+      }),
+      headers: {
+        accept: 'application/json',
+        ...baseHeaders,
+      },
+      method: 'PATCH',
+    })
+    const updatedPayload = await readJson(updateResponse)
+    assert(
+      updateResponse.ok,
+      `/api/feature-flags/${createdId} PATCH returned ${updateResponse.status}: ${
+        updatedPayload.error ?? updatedPayload.message ?? 'unknown error'
+      }`,
+    )
+    assert(updatedPayload.enabled === true, '/api/feature-flags PATCH did not persist the update.')
+
+    const deleteResponse = await fetchWithTimeout(`${options.baseUrl}/api/feature-flags/${createdId}`, {
+      headers: {
+        accept: 'application/json',
+        ...baseHeaders,
+      },
+      method: 'DELETE',
+    })
+    const deletedPayload = await readJson(deleteResponse)
+    assert(
+      deleteResponse.ok || deleteResponse.status === 204,
+      `/api/feature-flags/${createdId} DELETE returned ${deleteResponse.status}: ${
+        deletedPayload.error ?? deletedPayload.message ?? 'unknown error'
+      }`,
+    )
+  } finally {
+    if (!createdId) {
+      return
+    }
+
+    try {
+      await fetchWithTimeout(`${options.baseUrl}/api/feature-flags/${createdId}`, {
+        headers: {
+          accept: 'application/json',
+          ...baseHeaders,
+        },
+        method: 'DELETE',
+      })
+    } catch {
+      // Ignore cleanup races. The smoke already proved the collection round-trip.
+    }
+  }
+}
+
+const runBillingWebhookSmoke = async ({ organizationId }) => {
+  if (!organizationId || !process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    log('[skip] billing webhook smoke is skipped because Stripe env or organization context is unavailable.')
+    return
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-03-31.basil',
+  })
+  const event = {
+    data: {
+      object: {
+        customer: 'cus_smoke_checkout',
+        customer_email: bootstrapEmail,
+        id: 'cs_smoke_checkout',
+        metadata: {
+          organizationId,
+        },
+      },
+    },
+    id: createWebhookEventId(),
+    type: 'checkout.session.completed',
+  }
+  const payload = JSON.stringify(event)
+
+  const invalidSignatureResponse = await fetchWithTimeout(
+    `${options.baseUrl}/api/core/billing/webhook`,
+    {
+      body: payload,
+      headers: {
+        'content-type': 'application/json',
+        'stripe-signature': 'invalid-signature',
+        'user-agent': 'studio99-smoke/first-run',
+      },
+      method: 'POST',
+    },
+  )
+  assert(invalidSignatureResponse.status === 400, 'billing webhook should reject invalid signatures.')
+  assertHeaderContains(
+    invalidSignatureResponse,
+    'cache-control',
+    'no-store',
+    '/api/core/billing/webhook invalid signature response should be no-store.',
+  )
+
+  const signature = stripe.webhooks.generateTestHeaderString({
+    payload,
+    secret: process.env.STRIPE_WEBHOOK_SECRET,
+  })
+
+  const successResponse = await fetchWithTimeout(`${options.baseUrl}/api/core/billing/webhook`, {
+    body: payload,
+    headers: {
+      'content-type': 'application/json',
+      'stripe-signature': signature,
+      'user-agent': 'studio99-smoke/first-run',
+    },
+    method: 'POST',
+  })
+  const successPayload = await readJson(successResponse)
+  assert(
+    successResponse.ok && successPayload.ok === true,
+    `billing webhook valid event failed (${successResponse.status}).`,
+  )
+
+  const duplicateResponse = await fetchWithTimeout(`${options.baseUrl}/api/core/billing/webhook`, {
+    body: payload,
+    headers: {
+      'content-type': 'application/json',
+      'stripe-signature': signature,
+      'user-agent': 'studio99-smoke/first-run',
+    },
+    method: 'POST',
+  })
+  const duplicatePayload = await readJson(duplicateResponse)
+  assert(
+    duplicateResponse.ok && duplicatePayload.duplicate === true,
+    `billing webhook duplicate event failed (${duplicateResponse.status}).`,
+  )
 }
 
 const assertBootstrapStatus = async () => {
@@ -617,11 +816,18 @@ const run = async () => {
 
   const bootstrapCredentials = await bootstrapOwner()
   const sessionCookie = await loginOwner(bootstrapCredentials)
+  let currentOrganizationId = null
 
   if (sessionCookie) {
     await assertApi(
       '/api/users/me',
-      () => true,
+      (payload) => {
+        currentOrganizationId =
+          payload?.user?.currentOrganization ??
+          payload?.currentOrganization ??
+          payload?.doc?.currentOrganization ??
+          null
+      },
       {
         cookie: sessionCookie,
       },
@@ -682,6 +888,20 @@ const run = async () => {
       : undefined,
   })
   log('[ok] /admin')
+
+  if (sessionCookie) {
+    await assertPage('/admin/collections/feature-flags', {
+      headers: {
+        cookie: sessionCookie,
+      },
+      mustInclude: ['Payload'],
+      oneOf: ['feature-flags', 'Feature Flags', 'Log in'],
+    })
+    log('[ok] /admin/collections/feature-flags')
+
+    await runAdminCrudSmoke(sessionCookie)
+    log('[ok] /admin CRUD smoke')
+  }
 
   await assertPage('/console', {
     headers: sessionCookie
@@ -762,6 +982,14 @@ const run = async () => {
     '/api/core/invites/accept should be no-store.',
   )
   log('[ok] /api/core/invites/accept')
+
+  await runBillingWebhookSmoke({
+    organizationId:
+      currentOrganizationId === null || currentOrganizationId === undefined
+        ? null
+        : String(currentOrganizationId),
+  })
+  log('[ok] /api/core/billing/webhook')
 
   await assertApi('/api/health', (payload) => {
     assert(payload.status === 'ok', `/api/health status was ${payload.status ?? 'unknown'}.`)

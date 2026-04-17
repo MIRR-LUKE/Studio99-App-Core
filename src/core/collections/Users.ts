@@ -7,6 +7,12 @@ import {
   userReadAccess,
   userUpdateAccess,
 } from '../access'
+import {
+  recordUserLogin,
+  recordUserLogout,
+  recordUserRefresh,
+  syncUserSecurityMetadata,
+} from '../hooks/auth'
 import { env } from '../../lib/env'
 import { ORGANIZATION_ROLE_OPTIONS } from '../utils/roles'
 
@@ -38,6 +44,12 @@ export const Users: CollectionConfig = {
     create: userCreateAccess,
     update: userUpdateAccess,
     delete: userDeleteAccess,
+  },
+  hooks: {
+    afterLogin: [recordUserLogin],
+    afterLogout: [recordUserLogout],
+    afterRefresh: [recordUserRefresh],
+    beforeChange: [syncUserSecurityMetadata],
   },
   fields: [
     {

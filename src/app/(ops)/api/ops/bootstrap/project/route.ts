@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 
 import { canAccessOps } from '@/core/access'
-import { writeProjectScaffold } from '@/core/ops/bootstrap'
-import type { ProjectTemplate } from '@/core/ops/bootstrap'
 import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
@@ -30,7 +28,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     name?: string
     projectKey?: string
-    template?: ProjectTemplate
+    template?: string
   }
 
   if (!body.name || !body.projectKey) {
@@ -53,6 +51,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const { writeProjectScaffold } = await import('@/core/ops/bootstrap')
     const result = await writeProjectScaffold({
       name: body.name,
       projectKey: body.projectKey,

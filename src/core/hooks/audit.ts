@@ -40,6 +40,11 @@ const getHeader = (req: PayloadRequest, key: string) => {
 const shouldSkipAudit = (context: RequestContext) =>
   Boolean((context as Record<string, unknown> | undefined)?.[AUDIT_CONTEXT_KEY])
 
+export const withAuditDisabledContext = (context?: RequestContext) => ({
+  ...((context as Record<string, unknown> | undefined) ?? {}),
+  [AUDIT_CONTEXT_KEY]: true,
+})
+
 const resolveOrganizationForTarget = (targetType: string, doc: AuditDoc) => {
   if (targetType === 'organizations') {
     return resolveDocumentId(doc.id)
@@ -48,20 +53,35 @@ const resolveOrganizationForTarget = (targetType: string, doc: AuditDoc) => {
   return resolveDocumentId(doc.organization)
 }
 
-const writeAuditLog = async ({
+const getRequestId = (req: PayloadRequest) =>
+  getHeader(req, 'x-request-id') ?? getHeader(req, 'x-vercel-id') ?? getHeader(req, 'traceparent')
+
+export const recordAuditEvent = async ({
   action,
+  actorType,
+  actorUser,
   context,
   detail,
   organization,
   req,
+  requestMethod,
+  requestId,
+  result,
+  reason,
   targetId,
   targetType,
 }: {
   action: string
+  actorType?: string
+  actorUser?: number | string | null
   context: RequestContext
   detail: Record<string, unknown>
   organization: number | string | null
   req: PayloadRequest
+  requestMethod?: string | null
+  requestId?: string | null
+  result?: string | null
+  reason?: string | null
   targetId: number | string | null
   targetType: string
 }) => {
@@ -75,19 +95,24 @@ const writeAuditLog = async ({
       collection: 'audit-logs',
       data: {
         action,
-        actorType: req.user ? 'user' : 'system',
-        actorUser: req.user ? req.user.id : undefined,
+        actorType: actorType ?? (req.user ? 'user' : 'system'),
+        actorUser: actorUser ?? (req.user ? req.user.id : undefined),
         detail,
         ip: getHeader(req, 'x-forwarded-for'),
         organization,
+        reason:
+          reason ??
+          ((context as Record<string, unknown> | undefined)?.studio99InternalReason as
+            | string
+            | undefined),
+        requestId: requestId ?? getRequestId(req),
+        requestMethod: requestMethod ?? req.method ?? null,
+        result: result ?? 'success',
         targetId,
         targetType,
         userAgent: getHeader(req, 'user-agent'),
       },
-      context: {
-        ...(context as Record<string, unknown>),
-        [AUDIT_CONTEXT_KEY]: true,
-      },
+      context: withAuditDisabledContext(context),
     })
   } catch (error) {
     console.error('Failed to write audit log entry', error)
@@ -98,14 +123,12 @@ export const createCollectionAuditAfterChange = (
   targetType: string,
 ): CollectionAfterChangeHook<AuditDoc> => {
   return async ({ context, doc, operation, overrideAccess, req }) =>
-    writeAuditLog({
+    recordAuditEvent({
       action: `${targetType}.${operation}`,
       context,
       detail: {
         operation,
         overrideAccess: Boolean(overrideAccess),
-        reason:
-          (context as Record<string, unknown> | undefined)?.studio99InternalReason ?? undefined,
       },
       organization: resolveOrganizationForTarget(targetType, doc),
       req,
@@ -118,13 +141,11 @@ export const createCollectionAuditAfterDelete = (
   targetType: string,
 ): CollectionAfterDeleteHook<AuditDoc> => {
   return async ({ context, doc, id, req }) =>
-    writeAuditLog({
+    recordAuditEvent({
       action: `${targetType}.delete`,
       context,
       detail: {
         operation: 'delete',
-        reason:
-          (context as Record<string, unknown> | undefined)?.studio99InternalReason ?? undefined,
       },
       organization: resolveOrganizationForTarget(targetType, doc),
       req,
@@ -135,14 +156,12 @@ export const createCollectionAuditAfterDelete = (
 
 export const createGlobalAuditAfterChange = (targetType: string): GlobalAfterChangeHook => {
   return async ({ context, doc, global, overrideAccess, req }) =>
-    writeAuditLog({
+    recordAuditEvent({
       action: `${global.slug}.update`,
       context,
       detail: {
         operation: 'update',
         overrideAccess: Boolean(overrideAccess),
-        reason:
-          (context as Record<string, unknown> | undefined)?.studio99InternalReason ?? undefined,
       },
       organization: null,
       req,

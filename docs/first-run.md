@@ -76,6 +76,7 @@ npm run dev
 ### `/console/factory` から作る
 
 `Project Factory` で key / name / template を入れて作ります。
+manifest を見ると、作られる route / docs / collections / feature flags / next steps まで先に確認できます。
 
 ### コマンドで作る
 
@@ -96,8 +97,10 @@ npm run bootstrap:project -- console "Studio99 Console" saas
 - `src/projects/<projectKey>/project.config.ts`
 - `src/projects/<projectKey>/feature-flags.ts`
 - `src/projects/<projectKey>/billing-note.md`
+- `src/projects/<projectKey>/collections/<collectionSlug>.ts`
 - `src/app/(app)/app/<projectKey>/page.tsx`
 - `src/app/api/<projectKey>/route.ts`
+- `docs/projects/<projectKey>.md`
 
 ## 11. 見本
 
@@ -108,6 +111,14 @@ repo には `example` project を同梱しています。
 - `src/projects/example`
 
 迷ったら、まず `example` を見てください。
+
+repo には `console` project も同梱しています。
+
+- `/app/console`
+- `/api/console`
+- `src/projects/console`
+
+こちらは dogfood 用の最初の consumer です。
 
 ## 12. 困ったら
 

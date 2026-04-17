@@ -26,6 +26,7 @@ type WriteResult = {
     apiRoute: string
     appRoute: string
     consoleFactoryRoute: string
+    consoleProjectRoute: string
     consoleProjectsRoute: string
     docsPath: string
   }
@@ -33,6 +34,8 @@ type WriteResult = {
   nextSteps: string[]
   skipped: Array<{ file: string }>
 }
+
+type BootstrapSummary = Pick<WriteResult, 'links' | 'manifest' | 'nextSteps'>
 
 type Props = {
   templates: TemplateOption[]
@@ -62,6 +65,14 @@ const buttonStyle = {
   padding: '12px 16px',
 } satisfies CSSProperties
 
+const normalizeProjectKey = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
 export function ProjectFactoryPanel({ templates }: Props) {
   const [form, setForm] = useState<FormState>({
     name: 'My App',
@@ -70,13 +81,16 @@ export function ProjectFactoryPanel({ templates }: Props) {
   })
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState<null | 'create' | 'preview'>(null)
-  const [manifest, setManifest] = useState<Manifest | null>(null)
+  const [preview, setPreview] = useState<BootstrapSummary | null>(null)
   const [result, setResult] = useState<WriteResult | null>(null)
 
   const selectedTemplate = useMemo(
     () => templates.find((template) => template.value === form.template) ?? templates[0],
     [form.template, templates],
   )
+
+  const normalizedProjectKey = useMemo(() => normalizeProjectKey(form.projectKey), [form.projectKey])
+  const canSubmit = form.name.trim().length > 0 && normalizedProjectKey.length > 0
 
   const updateField =
     (field: keyof FormState) =>
@@ -113,8 +127,8 @@ export function ProjectFactoryPanel({ templates }: Props) {
     setResult(null)
 
     try {
-      const nextManifest = await postJson<Manifest>('/api/ops/bootstrap/manifest')
-      setManifest(nextManifest)
+      const nextPreview = await postJson<BootstrapSummary>('/api/ops/bootstrap/manifest')
+      setPreview(nextPreview)
     } catch (previewError) {
       setError(previewError instanceof Error ? previewError.message : 'manifest の取得に失敗しました。')
     } finally {
@@ -128,7 +142,11 @@ export function ProjectFactoryPanel({ templates }: Props) {
 
     try {
       const nextResult = await postJson<WriteResult>('/api/ops/bootstrap/project')
-      setManifest(nextResult.manifest)
+      setPreview({
+        links: nextResult.links,
+        manifest: nextResult.manifest,
+        nextSteps: nextResult.nextSteps,
+      })
       setResult(nextResult)
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'project 作成に失敗しました。')
@@ -148,6 +166,9 @@ export function ProjectFactoryPanel({ templates }: Props) {
           <span>project key</span>
           <input onChange={updateField('projectKey')} style={inputStyle} value={form.projectKey} />
         </label>
+        <p style={{ color: '#52525b', lineHeight: 1.7, margin: '-6px 0 0' }}>
+          保存される project key: <strong>{normalizedProjectKey || '未入力'}</strong>
+        </p>
         <label style={{ display: 'grid', gap: '8px' }}>
           <span>表示名</span>
           <input onChange={updateField('name')} style={inputStyle} value={form.name} />
@@ -168,7 +189,7 @@ export function ProjectFactoryPanel({ templates }: Props) {
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '18px' }}>
         <button
-          disabled={loading !== null}
+          disabled={loading !== null || !canSubmit}
           onClick={handlePreview}
           style={buttonStyle}
           type="button"
@@ -176,7 +197,7 @@ export function ProjectFactoryPanel({ templates }: Props) {
           {loading === 'preview' ? 'manifest 作成中...' : 'manifest を見る'}
         </button>
         <button
-          disabled={loading !== null}
+          disabled={loading !== null || !canSubmit}
           onClick={handleCreate}
           style={{ ...buttonStyle, background: '#2563eb' }}
           type="button"
@@ -187,20 +208,26 @@ export function ProjectFactoryPanel({ templates }: Props) {
       {error ? (
         <p style={{ color: '#b91c1c', margin: '16px 0 0' }}>{error}</p>
       ) : null}
-      {manifest ? (
+      {preview ? (
         <div style={{ marginTop: '22px' }}>
           <p style={{ margin: '0 0 10px' }}>
-            <strong>{manifest.templateLabel}</strong> / {manifest.projectKey}
+            <strong>{preview.manifest.templateLabel}</strong> / {preview.manifest.projectKey}
           </p>
           <p style={{ color: '#52525b', lineHeight: 1.7, margin: '0 0 14px' }}>
-            {manifest.templateDescription}
+            {preview.manifest.templateDescription}
           </p>
           <div style={{ display: 'grid', gap: '16px' }}>
-            <ManifestList items={manifest.routes} title="routes" />
-            <ManifestList items={manifest.files} title="files" />
-            <ManifestList items={manifest.collections} title="collections" />
-            <ManifestList items={manifest.featureFlags} title="feature flags" />
+            <ManifestList items={preview.manifest.routes} title="routes" />
+            <ManifestList items={preview.manifest.files} title="files" />
+            <ManifestList items={preview.manifest.collections} title="collections" />
+            <ManifestList items={preview.manifest.featureFlags} title="feature flags" />
+            <ManifestList items={preview.nextSteps} title="next steps" />
           </div>
+          <p style={{ margin: '12px 0 0' }}>
+            すぐ開く場所: <a href={preview.links.consoleProjectRoute}>{preview.links.consoleProjectRoute}</a> /{' '}
+            <a href={preview.links.appRoute}>{preview.links.appRoute}</a> /{' '}
+            <a href={preview.links.docsPath}>{preview.links.docsPath}</a>
+          </p>
         </div>
       ) : null}
       {result ? (
@@ -210,9 +237,9 @@ export function ProjectFactoryPanel({ templates }: Props) {
           </p>
           <div style={{ display: 'grid', gap: '10px', marginBottom: '16px' }}>
             <p style={{ margin: 0 }}>
-              すぐ開く場所: <a href={result.links.appRoute}>{result.links.appRoute}</a> /{' '}
-              <a href={result.links.apiRoute}>{result.links.apiRoute}</a> /{' '}
-              <a href={result.links.consoleProjectsRoute}>{result.links.consoleProjectsRoute}</a>
+              すぐ開く場所: <a href={result.links.consoleProjectRoute}>{result.links.consoleProjectRoute}</a> /{' '}
+              <a href={result.links.appRoute}>{result.links.appRoute}</a> /{' '}
+              <a href={result.links.apiRoute}>{result.links.apiRoute}</a>
             </p>
             <ol style={{ lineHeight: 1.7, margin: 0, paddingLeft: '20px' }}>
               {result.nextSteps.map((step) => (

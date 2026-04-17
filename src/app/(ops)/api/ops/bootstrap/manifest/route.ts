@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { canAccessOps } from '@/core/access'
-import { buildProjectBootstrapManifest } from '@/core/ops/bootstrap'
-import type { ProjectTemplate } from '@/core/ops/bootstrap'
+import { buildProjectBootstrapSummary, type ProjectTemplate } from '@/core/ops/bootstrap-preview'
 import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
@@ -50,14 +49,25 @@ export async function POST(request: Request) {
     return rateLimited
   }
 
-  const manifest = buildProjectBootstrapManifest({
-    name: body.name,
-    projectKey: body.projectKey,
-    template: body.template,
-  })
+  try {
+    const summary = buildProjectBootstrapSummary({
+      name: body.name,
+      projectKey: body.projectKey,
+      template: body.template,
+    })
 
-  return applyPayloadResponseHeaders(NextResponse.json(manifest), responseHeaders, {
-    authenticated: true,
-    request,
-  })
+    return applyPayloadResponseHeaders(NextResponse.json(summary), responseHeaders, {
+      authenticated: true,
+      request,
+    })
+  } catch (error) {
+    return applyPayloadResponseHeaders(
+      NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Failed to build project manifest.' },
+        { status: 400 },
+      ),
+      responseHeaders,
+      { authenticated: true, request },
+    )
+  }
 }

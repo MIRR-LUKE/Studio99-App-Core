@@ -7,6 +7,7 @@ export const AuditLogs: CollectionConfig = {
   slug: 'audit-logs',
   timestamps: true,
   admin: {
+    defaultColumns: ['action', 'result', 'targetType', 'targetId', 'createdAt'],
     useAsTitle: 'action',
   },
   access: {
@@ -42,6 +43,16 @@ export const AuditLogs: CollectionConfig = {
       required: true,
     },
     {
+      name: 'result',
+      type: 'select',
+      defaultValue: 'success',
+      options: [
+        { label: 'Success', value: 'success' },
+        { label: 'Failure', value: 'failure' },
+        { label: 'Denied', value: 'denied' },
+      ],
+    },
+    {
       name: 'actorUser',
       type: 'relationship',
       relationTo: 'users',
@@ -55,7 +66,19 @@ export const AuditLogs: CollectionConfig = {
       type: 'json',
     },
     {
+      name: 'reason',
+      type: 'textarea',
+    },
+    {
       name: 'ip',
+      type: 'text',
+    },
+    {
+      name: 'requestId',
+      type: 'text',
+    },
+    {
+      name: 'requestMethod',
       type: 'text',
     },
     {

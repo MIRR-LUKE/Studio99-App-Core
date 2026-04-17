@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
-import { listLocalProjects, projectTemplateOptions } from '@/core/ops/bootstrap'
+import { projectTemplateOptions } from '@/core/ops/bootstrap-preview'
+import { listLocalProjects } from '@/core/ops/local-projects'
 
 export const dynamic = 'force-dynamic'
 

@@ -2,9 +2,10 @@ import type { PayloadRequest } from 'payload'
 
 import { createSystemLocalApi } from '../server/localApi'
 import { listOperationalFailures } from './failures'
-import { listLocalProjects, projectTemplateOptions } from './bootstrap'
+import { projectTemplateOptions } from './bootstrap-preview'
 import { getHealthStatus } from './health'
 import { CORE_JOB_QUEUES } from './jobs'
+import { listLocalProjects } from './local-projects'
 import { getRecoveryPolicy } from './recovery'
 
 export const CONSOLE_NAV_ITEMS = [

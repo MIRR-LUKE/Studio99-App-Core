@@ -11,10 +11,41 @@ import {
   createCollectionAuditAfterDelete,
 } from '../hooks/audit'
 
+const syncArchivedOrganizationState = async ({
+  data,
+  req,
+}: {
+  data?: Record<string, unknown>
+  req: {
+    user?: {
+      id?: number | string
+    } | null
+  }
+}) => {
+    const status = (data as Record<string, unknown> | undefined)?.status
+    const archivedAt = (data as Record<string, unknown> | undefined)?.archivedAt ?? null
+
+    if (status === 'archived') {
+      return {
+        ...(data as Record<string, unknown>),
+        archivedAt: archivedAt ?? new Date().toISOString(),
+        archivedBy:
+          (data as Record<string, unknown> | undefined)?.archivedBy ?? req.user?.id ?? null,
+      }
+    }
+
+    return {
+      ...(data as Record<string, unknown>),
+      archivedAt: null,
+      archivedBy: null,
+    }
+  }
+
 export const Organizations: CollectionConfig = {
   slug: 'organizations',
   timestamps: true,
   admin: {
+    defaultColumns: ['name', 'slug', 'status', 'billingStatus', 'updatedAt'],
     useAsTitle: 'name',
   },
   access: {
@@ -24,6 +55,7 @@ export const Organizations: CollectionConfig = {
     delete: organizationDeleteAccess,
   },
   hooks: {
+    beforeChange: [syncArchivedOrganizationState],
     afterChange: [createCollectionAuditAfterChange('organizations')],
     afterDelete: [createCollectionAuditAfterDelete('organizations')],
   },
@@ -86,6 +118,23 @@ export const Organizations: CollectionConfig = {
     {
       name: 'gracePeriodEndsAt',
       type: 'date',
+    },
+    {
+      name: 'archivedAt',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+      },
+    },
+    {
+      name: 'archivedBy',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+      },
     },
     {
       name: 'seatLimit',

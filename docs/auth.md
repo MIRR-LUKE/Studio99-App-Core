@@ -73,11 +73,36 @@ password reset は共通化します。
 - destructive maintenance 実行
 - restore / purge 実行
 
+現状は「最近ログインしたセッションだけ通す」recent auth gate を入れています。
+危険操作では `lastLoginAt` が古いセッションを弾きます。
+
 ## Logout policy
 
 - 自端末 logout を標準にする
 - 全端末 logout を用意する
 - logout / reset / verify 完了は audit に残す
+
+全セッション logout は `/api/core/session/logout-all` と `/console/security` から実行できます。
+
+## Session lifecycle audit
+
+session の代表イベントは audit に残します。
+
+- `users.session.login`
+- `users.session.logout`
+- `users.session.refresh`
+
+login 成功時には `lastLoginAt` を更新します。
+password が変わる時は `security.passwordChangedAt` も更新します。
+
+## Invite UI
+
+invite accept は `/app/invite/accept` にあります。
+運用側では `/console/users` から次を扱えます。
+
+- invite create
+- invite resend
+- invite revoke
 
 ## Production guard rails
 

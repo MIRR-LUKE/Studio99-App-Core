@@ -49,6 +49,9 @@ npm run dev
 - globals
 - billing 関連 collection
 
+`smoke:first-run` では、`feature-flags` を 1 件作成して、更新して、削除するところまで通して確認します。  
+なので `/admin` は「開ける」だけでなく、最低限の CRUD が実際に効くことも前提にしています。
+
 ### `/console`
 
 Studio99 の表向きの統合管理画面です。
@@ -56,12 +59,15 @@ Studio99 の表向きの統合管理画面です。
 - project
 - tenants
 - users
+- invite create / resend / revoke
 - billing
 - media
 - settings
 - recovery
 - jobs
 - security
+
+`/console/factory` では、新しい project を作る前に manifest / files / collections / next steps を確認できます。
 
 ### `/app`
 
@@ -85,7 +91,8 @@ legacy redirect です。
 2. 表示名を入れる
 3. template を選ぶ
 4. `manifest を見る`
-5. 問題なければ `この project を作る`
+5. `next steps` を確認する
+6. 問題なければ `この project を作る`
 
 ### コマンドで作る
 
@@ -113,8 +120,10 @@ project を作ると、まずは次を見れば十分です。
 1. `src/projects/<projectKey>/project.config.ts`
 2. `src/projects/<projectKey>/feature-flags.ts`
 3. `src/projects/<projectKey>/billing-note.md`
-4. `src/app/(app)/app/<projectKey>/page.tsx`
-5. `src/app/api/<projectKey>/route.ts`
+4. `src/projects/<projectKey>/collections/<collectionSlug>.ts`
+5. `src/app/(app)/app/<projectKey>/page.tsx`
+6. `src/app/api/<projectKey>/route.ts`
+7. `docs/projects/<projectKey>.md`
 
 ここから先は、project 固有の page / API / collection を足していきます。
 
@@ -133,7 +142,24 @@ project を作ると、まずは次を見れば十分です。
 3. `src/projects/example/collections/README.md`
 4. `src/app/(app)/app/example/page.tsx`
 
-## 7. 何を core に置いて、何を project に置くか
+## 7. dogfood の `console` project を見る
+
+`console` は、この core の上に載せた最初の consumer です。
+
+- `/app/console`
+- `/api/console`
+- `src/projects/console`
+
+特に次を見ると、factory から作った project がどこまで最初から揃うかが分かります。
+
+1. `src/projects/console/project.config.ts`
+2. `src/projects/console/feature-flags.ts`
+3. `src/projects/console/collections/console-customers.ts`
+4. `src/projects/console/collections/console-workspaces.ts`
+5. `src/projects/console/collections/console-events.ts`
+6. `docs/projects/console.md`
+
+## 8. 何を core に置いて、何を project に置くか
 
 ### core に置くもの
 
@@ -152,7 +178,7 @@ project を作ると、まずは次を見れば十分です。
 - project 固有の API
 - project 固有の workflow
 
-## 8. よくあるつまずき
+## 9. よくあるつまずき
 
 ### `/bootstrap/owner` で作れない
 
@@ -178,7 +204,7 @@ npm run generate:importmap
 npm run db:migrate
 ```
 
-## 9. 困ったら
+## 10. 困ったら
 
 - [docs/first-run.md](./first-run.md)
 - [docs/bootstrap.md](./bootstrap.md)

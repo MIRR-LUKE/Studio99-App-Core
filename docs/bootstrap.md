@@ -13,7 +13,8 @@
 - template を選ぶ
 - manifest を確認する
 - scaffold を作る
-- 作成後に app / api / docs / 次の編集ポイントをその場で確認する
+- 作成後に app / api / docs / next steps をその場で確認する
+- 失敗した場合は、そのままエラー文を読む
 
 ### 2. コマンドで作る
 
@@ -53,10 +54,13 @@ npm run bootstrap:project -- pararia "Pararia" saas
 - `src/projects/<projectKey>/feature-flags.ts`
 - `src/projects/<projectKey>/billing-note.md`
 - `src/projects/<projectKey>/collections/README.md`
+- `src/projects/<projectKey>/collections/<collectionSlug>.ts`
 - `src/projects/<projectKey>/components/README.md`
 - `src/projects/<projectKey>/server/README.md`
 - `docs/projects/<projectKey>.md`
 - `docs/projects/<projectKey>-billing.md`
+
+`/console/factory` では、これらに加えて `next steps` と `console/projects/<projectKey>` の導線も見られます。
 
 ## `/console/factory` の下にある API
 
@@ -75,6 +79,12 @@ body:
   "template": "workspace"
 }
 ```
+
+返ってくるもの:
+
+- `manifest`
+- `links`
+- `nextSteps`
 
 ### 実際に scaffold を作る
 
@@ -96,9 +106,11 @@ body:
 
 1. `src/projects/<projectKey>/project.config.ts` を見る
 2. `src/projects/<projectKey>/feature-flags.ts` を見る
-3. `/app/<projectKey>` を開く
-4. `/api/<projectKey>` が返るか確かめる
-5. project 固有の page / collection / API を足す
+3. `src/projects/<projectKey>/billing-note.md` を見る
+4. `/console/projects/<projectKey>` を開いて Studio99 側の管理導線を確認する
+5. `/app/<projectKey>` を開く
+6. `/api/<projectKey>` が返るか確かめる
+7. project 固有の page / collection / API を足す
 
 `/console` 側では、作成した project の管理導線をここから辿れるようにします。
 

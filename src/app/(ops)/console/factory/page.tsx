@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 import { ProjectFactoryPanel } from '../../ops/_components/ProjectFactoryPanel'
-import { buildProjectBootstrapManifest, projectTemplateOptions } from '@/core/ops/bootstrap'
+import { buildProjectBootstrapManifest, projectTemplateOptions } from '@/core/ops/bootstrap-preview'
 import { getConsoleOverview } from '@/core/ops/console'
 import {
   canViewConsole,

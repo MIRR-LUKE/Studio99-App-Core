@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 import { canViewConsole, consoleCardGridStyle, consoleCardStyle, consoleHeadingStyle, consoleLinkStyle, consoleMutedStyle, consolePageStyle, consoleSectionStyle, displayValue, formatCount, formatDate, getApiCollectionHref, getConsoleRequest } from '../_lib/console'
 import { getConsoleOverview } from '@/core/ops/console'
-import { buildProjectBootstrapManifest } from '@/core/ops/bootstrap'
+import { buildProjectBootstrapManifest } from '@/core/ops/bootstrap-preview'
 
 export const dynamic = 'force-dynamic'
 

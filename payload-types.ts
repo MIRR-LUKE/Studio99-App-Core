@@ -259,6 +259,8 @@ export interface Organization {
   planKey?: string | null;
   billingStatus?: ('none' | 'trialing' | 'active' | 'grace' | 'past_due' | 'unpaid' | 'canceled' | 'incomplete') | null;
   gracePeriodEndsAt?: string | null;
+  archivedAt?: string | null;
+  archivedBy?: (number | null) | User;
   seatLimit?: number | null;
   billingEntitlements?:
     | {
@@ -368,6 +370,7 @@ export interface AuditLog {
   targetType?: string | null;
   targetId?: string | null;
   action: string;
+  result?: ('success' | 'failure' | 'denied') | null;
   actorUser?: (number | null) | User;
   actorType?: string | null;
   detail?:
@@ -379,7 +382,10 @@ export interface AuditLog {
     | number
     | boolean
     | null;
+  reason?: string | null;
   ip?: string | null;
+  requestId?: string | null;
+  requestMethod?: string | null;
   userAgent?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -931,6 +937,8 @@ export interface OrganizationsSelect<T extends boolean = true> {
   planKey?: T;
   billingStatus?: T;
   gracePeriodEndsAt?: T;
+  archivedAt?: T;
+  archivedBy?: T;
   seatLimit?: T;
   billingEntitlements?: T;
   notificationDefaults?:
@@ -1028,10 +1036,14 @@ export interface AuditLogsSelect<T extends boolean = true> {
   targetType?: T;
   targetId?: T;
   action?: T;
+  result?: T;
   actorUser?: T;
   actorType?: T;
   detail?: T;
+  reason?: T;
   ip?: T;
+  requestId?: T;
+  requestMethod?: T;
   userAgent?: T;
   updatedAt?: T;
   createdAt?: T;

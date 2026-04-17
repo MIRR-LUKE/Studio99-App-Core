@@ -296,3 +296,42 @@ export const revokeInvite = async ({
     },
   })
 }
+
+export const resendInvite = async ({
+  inviteId,
+  req,
+}: {
+  inviteId: number | string
+  req: PayloadRequest
+}) => {
+  const systemApi = createSystemLocalApi(req, 'load invite before resend')
+  const invite = (await systemApi.findByID({
+    collection: 'invites',
+    depth: 0,
+    id: inviteId,
+  })) as InviteDoc | null
+
+  if (!invite) {
+    throw new Error('Invite not found.')
+  }
+
+  if (invite.status === 'accepted') {
+    throw new Error('Accepted invites cannot be resent.')
+  }
+
+  const organizationId = resolveDocumentId(invite.organization)
+  if (organizationId === null) {
+    throw new Error('Invite organization is invalid.')
+  }
+
+  if (!invite.role) {
+    throw new Error('Invite role is invalid.')
+  }
+
+  return issueInvite({
+    email: invite.email,
+    organizationId,
+    req,
+    role: invite.role,
+  })
+}

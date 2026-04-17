@@ -1,7 +1,11 @@
 import Link from 'next/link'
 
 import { env } from '@/lib/env'
-import { getSecurityContentSecurityPolicy, getSecurityPolicyMode } from '@/core/security'
+import {
+  getRecentAuthenticationWindowMs,
+  getSecurityContentSecurityPolicy,
+  getSecurityPolicyMode,
+} from '@/core/security'
 
 import {
   canViewConsole,
@@ -17,6 +21,7 @@ import {
   getConsoleApi,
   getConsoleRequest,
 } from '../_lib/console'
+import { ConsoleActionForm } from '../_components/console-action-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,12 +93,17 @@ export default async function ConsoleSecurityPage() {
           <p style={{ margin: '0 0 6px' }}>audit logs</p>
           <strong>{formatCount(auditLogs.totalDocs)}</strong>
         </div>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>recent auth window</p>
+          <strong>{Math.round(getRecentAuthenticationWindowMs() / 60000)} min</strong>
+        </div>
       </section>
 
       <section style={consoleSectionStyle}>
         <ul style={{ lineHeight: 1.8, margin: 0, paddingLeft: '20px' }}>
           <li>same-origin mutation guard は state-changing route に入れる方針</li>
           <li>authenticated response は no-store を基本にする方針</li>
+          <li>dangerous action は recent auth を要求する方針</li>
           <li>rate limit store: {env.security.rateLimitStore}</li>
           <li>additional CORS origins: {env.security.corsAllowlist || '—'}</li>
           <li>failed operational events: {formatCount(failedOperationalEvents.totalDocs)}</li>
@@ -104,6 +114,17 @@ export default async function ConsoleSecurityPage() {
         <p style={consoleMutedStyle}>
           current CSP: <span style={consoleCodeStyle}>{csp}</span>
         </p>
+      </section>
+
+      <section style={consoleSectionStyle}>
+        <ConsoleActionForm
+          action="/api/core/session/logout-all"
+          buttonLabel="logout all sessions"
+          confirmLabel="全セッションをログアウトします"
+          description="安全のため、最近ログインしたセッションだけが実行できます。"
+          requireConfirm
+          successLabel="全セッションをログアウトしました。"
+        />
       </section>
 
       <section style={consoleSectionStyle}>

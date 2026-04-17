@@ -6,7 +6,11 @@ import {
   applyPayloadResponseHeaders,
   createAuthenticatedPayloadRequest,
 } from '@/core/server/payloadRequest'
-import { createSameOriginMutationGuard, enforceRateLimit } from '@/core/security'
+import {
+  createSameOriginMutationGuard,
+  enforceRateLimit,
+  requireRecentAuthentication,
+} from '@/core/security'
 import { requireDangerousActionReason } from '@/core/ops/protocol'
 
 type RouteContext = {
@@ -26,6 +30,19 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (!canAccessOps({ req })) {
     return applyPayloadResponseHeaders(
       NextResponse.json({ error: 'Ops access required.' }, { status: 403 }),
+      responseHeaders,
+      { authenticated: true, request },
+    )
+  }
+
+  try {
+    requireRecentAuthentication(req)
+  } catch (error) {
+    return applyPayloadResponseHeaders(
+      NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Recent authentication required.' },
+        { status: 403 },
+      ),
       responseHeaders,
       { authenticated: true, request },
     )
