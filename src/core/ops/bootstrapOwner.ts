@@ -21,6 +21,7 @@ type BootstrapOwnerStatus = {
 
 type BootstrapOwnerEventArgs = {
   email?: string
+  organizationId?: number | string
   reason: string
   req: PayloadRequest
   relatedId?: number | string
@@ -81,29 +82,39 @@ export const getBootstrapOwnerStatus = async (req: PayloadRequest): Promise<Boot
 
 export const recordBootstrapOwnerEvent = async ({
   email,
+  organizationId,
   reason,
   relatedId,
   req,
   status,
   summary,
 }: BootstrapOwnerEventArgs) => {
+  if (!organizationId) {
+    return null
+  }
+
   const api = createSystemLocalApi(req, 'record bootstrap owner event')
 
-  return api.create({
-    collection: 'operational-events',
-    depth: 0,
-    data: {
-      detail: {
-        email,
+  try {
+    return await api.create({
+      collection: 'operational-events',
+      depth: 0,
+      data: {
+        detail: {
+          email,
+        },
+        eventType: 'bootstrap_manifest',
+        organization: organizationId,
+        reason,
+        relatedCollection: relatedId ? 'users' : undefined,
+        relatedId: relatedId ? String(relatedId) : undefined,
+        status,
+        summary,
       },
-      eventType: 'bootstrap_manifest',
-      reason,
-      relatedCollection: relatedId ? 'users' : undefined,
-      relatedId: relatedId ? String(relatedId) : undefined,
-      status,
-      summary,
-    },
-  })
+    })
+  } catch {
+    return null
+  }
 }
 
 export const createFirstPlatformOwner = async ({
@@ -223,6 +234,7 @@ export const createFirstPlatformOwner = async ({
     } catch (error) {
       await recordBootstrapOwnerEvent({
         email,
+        organizationId: organization.id,
         reason:
           error instanceof Error
             ? `bootstrap membership sync skipped: ${error.message}`
@@ -236,6 +248,7 @@ export const createFirstPlatformOwner = async ({
 
     await recordBootstrapOwnerEvent({
       email,
+      organizationId: organization.id,
       reason: 'platform owner bootstrap completed successfully',
       relatedId: owner.id,
       req,
@@ -258,6 +271,7 @@ export const createFirstPlatformOwner = async ({
 
     await recordBootstrapOwnerEvent({
       email,
+      organizationId: organization.id,
       reason: error instanceof Error ? error.message : 'platform owner bootstrap failed',
       req,
       status: 'failed',
