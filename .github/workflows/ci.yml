@@ -32,6 +32,7 @@ jobs:
       BOOTSTRAP_OWNER_TOKEN: smoke-bootstrap-token
       STRIPE_SECRET_KEY: sk_test_placeholder
       STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      SECURITY_RATE_LIMIT_ALLOW_MEMORY_IN_CI: true
     steps:
       - name: Check out repository
         uses: actions/checkout@v6

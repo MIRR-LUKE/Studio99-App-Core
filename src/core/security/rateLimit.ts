@@ -37,6 +37,8 @@ declare global {
 }
 
 const isProduction = env.NODE_ENV === 'production'
+const canUseMemoryStoreInCurrentRuntime =
+  env.security.rateLimitStore === 'memory' && (!isProduction || env.security.rateLimitAllowMemoryInCi)
 
 const getStore = () => {
   globalThis.__studio99RateLimitStore ??= new Map<string, RateLimitEntry>()
@@ -200,9 +202,9 @@ const checkRateLimit = async (
   limit: number,
   windowMs: number,
 ): Promise<RateLimitResult> => {
-  if (isProduction && env.security.rateLimitStore === 'memory') {
+  if (isProduction && env.security.rateLimitStore === 'memory' && !env.security.rateLimitAllowMemoryInCi) {
     throw new Error(
-      'SECURITY_RATE_LIMIT_STORE=memory is not allowed in production. Use SECURITY_RATE_LIMIT_STORE=upstash-redis with its URL and token.',
+      'SECURITY_RATE_LIMIT_STORE=memory is not allowed in production deploys. Use SECURITY_RATE_LIMIT_STORE=upstash-redis with its URL and token.',
     )
   }
 
@@ -220,7 +222,11 @@ const checkRateLimit = async (
     }
   }
 
-  return checkRateLimitInMemory(key, limit, windowMs, 'memory')
+  if (canUseMemoryStoreInCurrentRuntime) {
+    return checkRateLimitInMemory(key, limit, windowMs, 'memory')
+  }
+
+  throw new Error('Rate limit store is not configured for the current runtime.')
 }
 
 export const enforceRateLimit = async (options: RateLimitOptions) => {

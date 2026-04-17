@@ -3,6 +3,7 @@ const requiredEnvKeys = ['DATABASE_URL', 'PAYLOAD_SECRET', 'NEXT_PUBLIC_SERVER_U
 type RequiredEnvKey = (typeof requiredEnvKeys)[number]
 
 const nodeEnv = optionalEnv('NODE_ENV', 'development')
+const isCi = booleanEnv('CI', false)
 const storageProviders = ['local', 's3'] as const
 type StorageProvider = (typeof storageProviders)[number]
 const authCookieSameSiteValues = ['Lax', 'None', 'Strict'] as const
@@ -112,6 +113,7 @@ const rateLimitStore = enumEnv<RateLimitStore>(
   rateLimitStoreValues,
   'memory',
 )
+const rateLimitAllowMemoryInCi = booleanEnv('SECURITY_RATE_LIMIT_ALLOW_MEMORY_IN_CI', isCi)
 
 export const env = {
   DATABASE_URL: requireEnv('DATABASE_URL'),
@@ -178,6 +180,7 @@ export const env = {
   },
   security: {
     corsAllowlist: optionalEnv('SECURITY_CORS_ALLOWLIST', ''),
+    rateLimitAllowMemoryInCi,
     rateLimitStore,
     rateLimitStoreToken: requireWhen(
       rateLimitStore === 'upstash-redis',

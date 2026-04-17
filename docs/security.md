@@ -18,7 +18,8 @@ Studio99 Application Core のセキュリティ基盤は、middleware と route 
 - app の通常処理は `createScopedLocalApi` を使い、`overrideAccess: true` が必要な処理は `createSystemLocalApi` に閉じる
 - `createSystemLocalApi` と `withInternalAccess` は reason 必須で、`studio99InternalAccess` と `studio99InternalReason` を context に残す
 - organization scope の判定は request 単位でまとめ、access helper が同じ membership を何度も引き直さない
-- production では `SECURITY_RATE_LIMIT_STORE=memory` を禁止し、shared store なしでは起動時に失敗する
+- production deploy では `SECURITY_RATE_LIMIT_STORE=memory` を禁止し、shared store なしでは起動時に失敗する
+- 例外は CI の production-like smoke だけで、`SECURITY_RATE_LIMIT_ALLOW_MEMORY_IN_CI=true` を明示したときに限る
 
 ## 対象
 
@@ -45,6 +46,7 @@ same-origin / CSRF guard と rate limit を特に強めるのは次です。
 - `SECURITY_RATE_LIMIT_STORE`: `memory` か `upstash-redis`
 - `SECURITY_RATE_LIMIT_STORE_URL`: `upstash-redis` を使うときの REST URL
 - `SECURITY_RATE_LIMIT_STORE_TOKEN`: `upstash-redis` を使うときの REST token
+- `SECURITY_RATE_LIMIT_ALLOW_MEMORY_IN_CI`: CI の smoke でだけ memory store を許す明示フラグ
 
 `NEXT_PUBLIC_SERVER_URL` の origin は常に許可対象に含めます。
 `cf-connecting-ip`、`x-real-ip`、`x-forwarded-for` の順で、妥当な IP を rate limit の識別子に使います。
@@ -58,4 +60,5 @@ same-origin / CSRF guard と rate limit を特に強めるのは次です。
 - `/api/core/invites` と `/api/core/invites/accept` は no-store を維持する
 - `/api/bootstrap/platform-owner` は no-store と security headers を維持する
 - 本番で複数 instance を動かすときは `SECURITY_RATE_LIMIT_STORE=upstash-redis` を使う
+- CI の route smoke は `SECURITY_RATE_LIMIT_ALLOW_MEMORY_IN_CI=true` を使うが、deploy 環境には持ち込まない
 - production で shared rate limit store が落ちた場合は memory fallback せず、その request を失敗扱いにする

@@ -102,14 +102,16 @@ billing を使うなら次を設定します。
 
 - 開発中は `SECURITY_RATE_LIMIT_STORE=memory` でもよいです
 - 本番では `SECURITY_RATE_LIMIT_STORE=upstash-redis` を必須にします
-- この repo は production で `SECURITY_RATE_LIMIT_STORE=memory` を受け付けません
+- この repo は production deploy で `SECURITY_RATE_LIMIT_STORE=memory` を受け付けません
 - shared store が落ちたときも production では memory fallback しません
+- CI の production-like smoke だけは `SECURITY_RATE_LIMIT_ALLOW_MEMORY_IN_CI=true` で例外化します
 - `SECURITY_RATE_LIMIT_STORE_URL` と `SECURITY_RATE_LIMIT_STORE_TOKEN` は `upstash-redis` 用です
 
 - `SECURITY_CORS_ALLOWLIST`
 - `SECURITY_RATE_LIMIT_STORE`
 - `SECURITY_RATE_LIMIT_STORE_URL`
 - `SECURITY_RATE_LIMIT_STORE_TOKEN`
+- `SECURITY_RATE_LIMIT_ALLOW_MEMORY_IN_CI`
 
 ### recovery
 

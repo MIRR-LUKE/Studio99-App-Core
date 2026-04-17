@@ -33,6 +33,7 @@ CI では `build` のあとに `scripts/smoke-first-run.mjs` を回します。
 さらに、`scripts/security-route-audit.mjs` で state-changing route の same-origin / rate limit を静的に監査し、`/api/bootstrap/platform-owner` と auth cookie の基本ヘッダも確認します。
 `/admin` は `feature-flags` だけでなく `support-notes` / `operational-events` / `backup-snapshots` / `billing-customers` の CRUD も通して、裏口として編集できることを広げて確認します。
 billing webhook については invalid signature / valid event / duplicate event の 3 パターンを smoke に入れています。
+CI は `SECURITY_RATE_LIMIT_ALLOW_MEMORY_IN_CI=true` を明示して、production-like 起動でも Redis なしで route 起動保証だけを確認します。deploy 環境ではこの例外を使いません。
 
 ## ローカルで回す
 
