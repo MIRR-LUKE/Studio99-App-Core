@@ -158,7 +158,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const owner = await createFirstPlatformOwner({
+    const bootstrap = await createFirstPlatformOwner({
       displayName,
       email,
       password: body.password,
@@ -169,11 +169,11 @@ export async function POST(request: Request) {
       adminUrl: '/admin',
       appUrl: '/app',
       consoleUrl: '/console',
-      currentOrganizationId: owner.currentOrganization ?? null,
+      currentOrganizationId: bootstrap.organizationId ?? bootstrap.owner.currentOrganization ?? null,
       ok: true,
-      organizationId: owner.currentOrganization ?? null,
+      organizationId: bootstrap.organizationId ?? bootstrap.owner.currentOrganization ?? null,
       opsUrl: '/ops',
-      userId: owner.id,
+      userId: bootstrap.owner.id,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create platform owner.'

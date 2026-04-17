@@ -1144,13 +1144,8 @@ const runBillingWebhookRetrySmoke = async ({
     : null
   assert(!retriedBillingEvent, 'billing webhook retry smoke left the billing event in the failed list after retry.')
 
-  const operationalEvents = await fetchCollectionList({
-    collection: 'operational-events',
-    query: 'limit=20&sort=-createdAt',
-    sessionCookie,
-  })
-  const retryEvent = Array.isArray(operationalEvents.docs)
-    ? operationalEvents.docs.find(
+  const retryEvent = Array.isArray(postRetryFailuresPayload.recentOperationalEvents)
+    ? postRetryFailuresPayload.recentOperationalEvents.find(
         (doc) =>
           doc?.summary === 'Billing event retry processed' &&
           String(doc?.relatedId ?? '') === String(billingEvent.id),
@@ -1203,13 +1198,16 @@ const runRestoreDrillOperationalSmoke = async ({ sessionCookie }) => {
     'maintenance queue route returned an unexpected payload.',
   )
 
-  const operationalEvents = await fetchCollectionList({
-    collection: 'operational-events',
-    query: 'limit=20&sort=-createdAt',
-    sessionCookie,
+  const failuresResponse = await fetchWithTimeout(`${options.baseUrl}/api/ops/failures`, {
+    headers: buildJsonHeaders({
+      cookie: sessionCookie,
+    }),
   })
-  const reminderEvent = Array.isArray(operationalEvents.docs)
-    ? operationalEvents.docs.find(
+  const failuresPayload = await readJson(failuresResponse)
+  assert(failuresResponse.ok, `/api/ops/failures returned ${failuresResponse.status} during restore drill smoke.`)
+
+  const reminderEvent = Array.isArray(failuresPayload.recentOperationalEvents)
+    ? failuresPayload.recentOperationalEvents.find(
         (doc) =>
           doc?.summary === RESTORE_DRILL_REMINDER_SUMMARY &&
           String(doc?.relatedId ?? '') === String(snapshotId),

@@ -256,7 +256,10 @@ export const createFirstPlatformOwner = async ({
       summary: 'Platform owner bootstrap completed',
     })
 
-    return owner
+    return {
+      organizationId: organization.id,
+      owner,
+    }
   } catch (error) {
     if (createdOrganizationId) {
       try {
