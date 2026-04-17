@@ -5,7 +5,8 @@ Studio99 Application Core は、どのプロジェクトでも共通で必要に
 ## 面の分割
 
 - `/app`: 各プロジェクトの本体画面
-- `/ops`: platform operations と保護された control route
+- `/console`: 表向きの統合管理画面
+- `/ops`: legacy redirect と保護された control route
 - `/admin`: Payload Admin による shared / project collection 管理
 
 ## 責務境界
@@ -58,7 +59,7 @@ Core から外に出すものは、重くて、失敗しやすくて、再試行
 2. プロジェクト固有の挙動は project route / collection / component に置く
 3. 重い処理、再試行が必要な処理は jobs に流す
 4. tenant boundary は UI だけでなく access function で強制する
-5. dangerous action は必ず `/ops` 経由でのみ実行する
+5. dangerous action は必ず `/console/ops` から入る
 6. hard delete ではなく soft delete + retention を標準にする
 7. 失敗しうる外部連携は先にイベント化してから処理する
 
@@ -74,7 +75,7 @@ Core から外に出すものは、重くて、失敗しやすくて、再試行
 - support note を伴う高リスク更新
 - purge / destructive maintenance
 
-実行経路は `/ops` に固定し、reason と audit / operational event を必須にします。
+表向きの実行経路は `/console/ops` に固定し、reason と audit / operational event を必須にします。
 
 ## tenant boundary
 

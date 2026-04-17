@@ -24,7 +24,7 @@
 
 ## 運用ルール
 
-- platform role は `/ops` と cross-tenant visibility を開く
+- platform role は `/console/ops` と cross-tenant visibility を開く
 - tenant role は `/app` のデータと organization-scoped operation を開く
 - 同じ user が両方の role family を持つことはできるが、判定は分離する
 - collection access と admin visibility は同じ role helper を使い、UI と API をずらさない

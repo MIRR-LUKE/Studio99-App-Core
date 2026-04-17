@@ -29,7 +29,7 @@
 ## core touching PR の確認点
 
 1. tenant boundary を access で守っているか
-2. dangerous action が `/ops` に閉じているか
+2. dangerous action が `/console/ops` に閉じているか
 3. hard delete を増やしていないか
 4. Local API の `overrideAccess` を広げていないか
 5. audit / operational event が残るか

@@ -70,8 +70,8 @@ Studio99 の表向きの統合管理画面です。
 
 ### `/ops`
 
-内部運用の導線です。
-health、recovery、project factory、失敗対応の入口がまとまっています。
+legacy redirect です。
+内部導線として残っていても、見る先は `/console/ops` です。
 
 表向きの project 作成は `/console/factory`、運用導線は `/console/ops` に寄せます。
 

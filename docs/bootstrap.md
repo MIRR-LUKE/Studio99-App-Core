@@ -58,7 +58,7 @@ npm run bootstrap:project -- pararia "Pararia" saas
 - `docs/projects/<projectKey>.md`
 - `docs/projects/<projectKey>-billing.md`
 
-## `/ops` の API
+## `/console/factory` の下にある API
 
 ### manifest だけ見る
 

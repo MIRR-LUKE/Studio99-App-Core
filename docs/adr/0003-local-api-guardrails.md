@@ -21,7 +21,7 @@ Local API は wrapper 経由で使い、guard rails を設ける。
 
 - access の抜け道を減らせる
 - audit と reason を揃えやすい
-- dangerous action を `/ops` に寄せやすい
+- dangerous action を `/console/ops` に寄せやすい
 - worker / maintenance と app の境界を切りやすい
 
 ## 結果
@@ -29,4 +29,3 @@ Local API は wrapper 経由で使い、guard rails を設ける。
 - `src/core/server` に共通 wrapper を置く
 - app の通常機能では bypass を使わない
 - 破壊的操作は ops route と audit を通す
-

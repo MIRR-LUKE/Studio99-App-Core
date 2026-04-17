@@ -34,5 +34,5 @@ same-origin / CSRF guard と rate limit を特に強めるのは次です。
 
 - app / ops の mutation は same-origin 以外から叩かせない
 - authenticated response はキャッシュさせない
-- dangerous action は `/ops` のみで扱う
+- dangerous action は `/console/ops` のみで扱う
 - 失敗しやすい endpoint は rate limit と retry 前提で設計する

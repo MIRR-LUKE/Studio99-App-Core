@@ -56,9 +56,19 @@ What it checks:
   - /bootstrap/owner
   - /admin
   - /console
+  - /console/projects
+  - /console/factory
+  - /console/users
+  - /console/billing
+  - /console/recovery
+  - /console/security
   - /app
   - /api/health
   - /api/ready
+  - /api/users/me
+  - /api/users/logout
+  - /api/core/invites
+  - /api/core/invites/accept
 
 Environment:
   NEXT_PUBLIC_SERVER_URL   Used as the Origin/Referer for bootstrap POST
@@ -336,6 +346,27 @@ const assertApi = async (pathname, validator, requestHeaders) => {
   validator(payload)
 }
 
+const assertRouteReachable = async (pathname, expectations = {}) => {
+  const response = await fetchWithTimeout(`${options.baseUrl}${pathname}`, {
+    body: expectations.body,
+    headers: {
+      accept: expectations.accept ?? 'application/json',
+      ...(expectations.headers ?? {}),
+      'content-type': expectations.contentType ?? 'application/json',
+      'user-agent': 'studio99-smoke/first-run',
+    },
+    method: expectations.method ?? 'GET',
+  })
+
+  const acceptableStatuses = expectations.acceptableStatuses ?? [200, 204, 400, 401, 403, 405]
+  assert(
+    acceptableStatuses.includes(response.status),
+    `${pathname} returned ${response.status}, expected one of ${acceptableStatuses.join(', ')}.`,
+  )
+
+  return response
+}
+
 const getCookieHeader = (response) => {
   const headerValues =
     typeof response.headers.getSetCookie === 'function'
@@ -559,6 +590,50 @@ const run = async () => {
     log('[ok] /api/users/me')
   }
 
+  await assertPage('/console/projects', {
+    headers: sessionCookie
+      ? {
+          cookie: sessionCookie,
+        }
+      : undefined,
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Projects', 'platform user でサインインしてください。'],
+  })
+  log('[ok] /console/projects')
+
+  await assertPage('/console/factory', {
+    headers: sessionCookie
+      ? {
+          cookie: sessionCookie,
+        }
+      : undefined,
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Factory', 'platform user でサインインしてください。'],
+  })
+  log('[ok] /console/factory')
+
+  await assertPage('/console/users', {
+    headers: sessionCookie
+      ? {
+          cookie: sessionCookie,
+        }
+      : undefined,
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Users', 'platform user でサインインしてください。'],
+  })
+  log('[ok] /console/users')
+
+  await assertPage('/console/billing', {
+    headers: sessionCookie
+      ? {
+          cookie: sessionCookie,
+        }
+      : undefined,
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Billing', 'platform user でサインインしてください。'],
+  })
+  log('[ok] /console/billing')
+
   await assertPage('/admin', {
     oneOf: ['Payload', 'Log in', 'admin'],
     headers: sessionCookie
@@ -581,11 +656,66 @@ const run = async () => {
   })
   log('[ok] /console')
 
+  await assertPage('/console/recovery', {
+    headers: sessionCookie
+      ? {
+          cookie: sessionCookie,
+        }
+      : undefined,
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Recovery', 'platform user でサインインしてください。'],
+  })
+  log('[ok] /console/recovery')
+
+  await assertPage('/console/security', {
+    headers: sessionCookie
+      ? {
+          cookie: sessionCookie,
+        }
+      : undefined,
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Security', 'platform user でサインインしてください。'],
+  })
+  log('[ok] /console/security')
+
   await assertPage('/app', {
     mustInclude: ['/console', '/admin'],
     oneOf: ['launchpad', '最短ルート', 'project'],
   })
   log('[ok] /app')
+
+  await assertRouteReachable('/api/users/logout', {
+    acceptableStatuses: [200, 204, 401, 403, 405],
+    headers: sessionCookie
+      ? {
+          cookie: sessionCookie,
+        }
+      : undefined,
+    method: 'POST',
+  })
+  log('[ok] /api/users/logout')
+
+  await assertRouteReachable('/api/core/invites', {
+    headers: sessionCookie
+      ? {
+          cookie: sessionCookie,
+        }
+      : undefined,
+  })
+  log('[ok] /api/core/invites')
+
+  await assertRouteReachable('/api/core/invites/accept', {
+    body: JSON.stringify({
+      token: 'smoke-invalid-token',
+    }),
+    headers: sessionCookie
+      ? {
+          cookie: sessionCookie,
+        }
+      : undefined,
+    method: 'POST',
+  })
+  log('[ok] /api/core/invites/accept')
 
   await assertApi('/api/health', (payload) => {
     assert(payload.status === 'ok', `/api/health status was ${payload.status ?? 'unknown'}.`)

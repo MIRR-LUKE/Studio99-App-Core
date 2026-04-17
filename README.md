@@ -8,7 +8,7 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 - organization / membership / invite / role
 - `/console` の統合管理画面
 - `/admin` の生管理画面
-- `/ops` の内部運用画面
+- `/ops` の legacy redirect
 - media 管理
 - billing
 - jobs / audit / restore / backup
@@ -26,7 +26,7 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 - `/console/factory` で新しい project を作れる
 - `/console/ops` で運用系の入口をまとめて見る
 - `npm run bootstrap:project` で新しい project の骨組みを作れる
-- `/ops` は内部導線として残しつつ、表向きの project 作成は `/console/factory`、運用導線は `/console/ops` に寄せていく
+- `/ops` は `/console/ops` へ送る legacy redirect として残している
 - `example` project を見本として同梱している
 
 ## 最短フロー
@@ -108,14 +108,12 @@ Studio99 の表向きの統合管理画面です。
 
 ### `/ops`
 
-内部運用の導線です。
+legacy redirect です。
 
-- health / ready の確認
-- recovery 方針の確認
-- project factory
-- failures / jobs / backup 導線
+表向きの運用導線は `/console/ops` に一本化しています。
+古い導線や内部 link が残っていても、最終的には `/console/ops` に送る前提です。
 
-表向きの project 作成は `/console/factory`、運用導線は `/console/ops` に寄せていきます。
+危険操作、failure console、recovery、jobs は `/console/ops` から見てください。
 
 ## 新しい project の作り方
 

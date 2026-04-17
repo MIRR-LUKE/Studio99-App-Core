@@ -1,23 +1,29 @@
 # ops
 
-`/ops` は、運用と保守のための内部導線です。
+`/ops` は legacy redirect です。
+表向きの運用導線は `/console/ops` に一本化します。
 
-普段のデータ編集は `/admin`、普段の利用は `/app`、表向きの管理は `/console`、内部運用は `/ops` と分けています。
+普段のデータ編集は `/admin`、普段の利用は `/app`、表向きの管理は `/console` です。
+`/ops` に残っている役割は、段階的に `/console/ops` へ寄せます。
 
-## `/ops` でできること
+## いまの位置づけ
 
-- health の確認
-- retention 方針の確認
-- project factory
-- failure 系 API の入口
-- backup / restore drill の入口
+- `/ops` に来ても `/console/ops` へ送る
+- 実行系の API は引き続き `/api/ops/*` を使う
+- UI と docs は `/console/ops` を主導線として扱う
 
-表向きの運用導線は `/console/ops` に寄せていきます。
+## `/console/ops` で見るもの
+
+- failed jobs
+- failed billing events
+- operational events
+- recovery / backup / restore drill
+- dangerous action の入口
 
 ## project factory
 
-`/ops` には `Project Factory` を置いています。
-表向きには `/console/factory` から同じ流れに入れる想定です。
+project factory の表入口は `/console/factory` です。
+`/ops` は内部 API への下敷きとしてだけ残します。
 
 ここでできること:
 
@@ -60,6 +66,6 @@ dangerous action には次が必要です。
 - `/admin`: データと設定を触る
 - `/console`: 表向きの統合管理画面
 - `/app`: アプリ本体
-- `/ops`: 内部の運用と復旧
+- `/ops`: legacy redirect
 
 この分離を守ると、あとで崩れにくくなります。

@@ -16,6 +16,7 @@
 
 CI では `build` のあとに `scripts/smoke-first-run.mjs` を回します。
 この smoke はアプリを起動してから、上の route を順番に確認します。
+加えて、`/console` の代表サブページと auth / invite の代表 route も軽く通して、表側の導線が壊れていないかを見ます。
 
 ## ローカルで回す
 
