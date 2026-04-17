@@ -58,14 +58,24 @@ What it checks:
   - /
   - /bootstrap/owner
   - /admin
+  - /admin/collections/feature-flags
+  - /admin/collections/support-notes
+  - /admin/collections/operational-events
+  - /admin/collections/backup-snapshots
+  - /admin/collections/billing-customers
   - /console
   - /console/projects
   - /console/factory
   - /console/users
   - /console/billing
+  - /console/jobs
   - /console/recovery
   - /console/security
+  - /console/data
   - /app
+  - /app/example
+  - /app/console
+  - /app/security
   - /api/health
   - /api/ready
   - /api/users/me
@@ -81,6 +91,230 @@ Environment:
   SMOKE_LOGIN_EMAIL        Optional existing owner email for login smoke
   SMOKE_LOGIN_PASSWORD     Optional existing owner password for login smoke
 `
+
+const PAGE_ROUTE_MANIFEST = [
+  {
+    pathname: '/',
+    oneOf: ['/bootstrap/owner', '/console', '/admin'],
+  },
+  {
+    pathname: '/bootstrap/owner',
+    oneOf: ['最初の管理者を作る', 'platform owner'],
+  },
+  {
+    pathname: '/admin',
+    oneOf: ['Payload', 'Log in', 'admin'],
+  },
+  {
+    pathname: '/admin/collections/feature-flags',
+    mustInclude: ['Payload'],
+    oneOf: ['feature-flags', 'Feature Flags', 'Log in'],
+  },
+  {
+    pathname: '/admin/collections/support-notes',
+    mustInclude: ['Payload'],
+    oneOf: ['support-notes', 'Support Notes', 'Log in'],
+  },
+  {
+    pathname: '/admin/collections/operational-events',
+    mustInclude: ['Payload'],
+    oneOf: ['operational-events', 'Operational Events', 'Log in'],
+  },
+  {
+    pathname: '/admin/collections/backup-snapshots',
+    mustInclude: ['Payload'],
+    oneOf: ['backup-snapshots', 'Backup Snapshots', 'Log in'],
+  },
+  {
+    pathname: '/admin/collections/billing-customers',
+    mustInclude: ['Payload'],
+    oneOf: ['billing-customers', 'Billing Customers', 'Log in'],
+  },
+  {
+    pathname: '/console',
+    oneOf: ['Overview', 'この core の現在地', 'console の準備がまだ終わっていません'],
+  },
+  {
+    pathname: '/console/projects',
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Projects', 'platform user でサインインしてください。'],
+  },
+  {
+    pathname: '/console/factory',
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Factory', 'platform user でサインインしてください。'],
+  },
+  {
+    pathname: '/console/users',
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Users', 'platform user でサインインしてください。'],
+  },
+  {
+    pathname: '/console/billing',
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Billing', 'platform user でサインインしてください。'],
+  },
+  {
+    pathname: '/console/jobs',
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Jobs', 'ops 権限が必要です。', 'platform user でサインインしてください。'],
+  },
+  {
+    pathname: '/console/recovery',
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Recovery', 'ops 権限が必要です。', 'platform user でサインインしてください。'],
+  },
+  {
+    pathname: '/console/security',
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['Security', 'platform user でサインインしてください。'],
+  },
+  {
+    pathname: '/console/data',
+    oneOf: ['何をここから触るかが分かる入口', 'Payload の生 CRUD に入る前の案内板です。'],
+  },
+  {
+    pathname: '/app',
+    mustInclude: ['/console', '/admin'],
+    oneOf: ['launchpad', '最短ルート', 'project'],
+  },
+  {
+    pathname: '/app/example',
+    oneOf: ['サンプルプロジェクト', 'サンプルワークスペース', '標準ワークスペースの始まり方'],
+  },
+  {
+    pathname: '/app/console',
+    mustInclude: ['Studio99 Console'],
+    oneOf: ['app から console へ', 'console project', 'current organization'],
+  },
+  {
+    pathname: '/app/security',
+    mustInclude: ['Studio99 Application Core'],
+    oneOf: ['Account security', 'サインイン後にもう一度開いてください。'],
+  },
+]
+
+const ROUTE_CHAIN_MANIFEST = [
+  '/bootstrap/owner',
+  '/admin',
+  '/console',
+  '/console/billing',
+  '/console/jobs',
+  '/console/recovery',
+]
+
+const ADMIN_COLLECTION_CRUD_MANIFEST = [
+  {
+    collection: 'feature-flags',
+    createBody: ({ stamp }) => ({
+      enabled: false,
+      environment: 'development',
+      key: `smoke-admin-${stamp}`,
+      notes: 'first-run admin CRUD smoke',
+      scopeId: '*',
+      scopeType: 'platform',
+    }),
+    updateBody: ({ stamp }) => ({
+      enabled: true,
+      notes: `first-run admin CRUD smoke updated ${stamp}`,
+    }),
+    validateCreated: (payload, body) => {
+      assert(payload.key === body.key, 'feature-flags POST did not preserve the requested key.')
+    },
+    validateUpdated: (payload) => {
+      assert(payload.enabled === true, 'feature-flags PATCH did not persist the update.')
+    },
+  },
+  {
+    collection: 'support-notes',
+    createBody: ({ organizationId, stamp }) => ({
+      body: `smoke support note ${stamp}`,
+      organization: organizationId,
+      tags: ['smoke', 'support'],
+      visibility: 'support',
+    }),
+    updateBody: ({ stamp }) => ({
+      body: `smoke support note updated ${stamp}`,
+      visibility: 'billing',
+    }),
+    validateCreated: (payload, body) => {
+      assert(String(payload.body ?? '').includes(String(body.body ?? '')), 'support-notes POST did not preserve the requested body.')
+    },
+    validateUpdated: (payload) => {
+      assert(payload.visibility === 'billing', 'support-notes PATCH did not persist the update.')
+    },
+  },
+  {
+    collection: 'operational-events',
+    createBody: ({ organizationId, stamp }) => ({
+      detail: { smoke: true, stamp },
+      eventType: 'maintenance_action',
+      organization: organizationId,
+      queueName: 'maintenance',
+      reason: 'smoke check',
+      relatedCollection: 'feature-flags',
+      relatedId: `smoke-${stamp}`,
+      status: 'pending',
+      summary: `smoke operational event ${stamp}`,
+    }),
+    updateBody: ({ stamp }) => ({
+      reason: `smoke check updated ${stamp}`,
+      status: 'acknowledged',
+    }),
+    validateCreated: (payload, body) => {
+      assert(String(payload.summary ?? '').includes(String(body.summary ?? '')), 'operational-events POST did not preserve the requested summary.')
+    },
+    validateUpdated: (payload) => {
+      assert(payload.status === 'acknowledged', 'operational-events PATCH did not persist the update.')
+    },
+  },
+  {
+    collection: 'backup-snapshots',
+    createBody: ({ organizationId, stamp }) => ({
+      detail: { smoke: true, stamp },
+      notes: 'first-run backup snapshot smoke',
+      reason: 'smoke check',
+      retentionUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      scopeId: organizationId,
+      scopeType: 'organization',
+      snapshotAt: new Date().toISOString(),
+      snapshotType: 'restore_drill',
+      status: 'available',
+      summary: `smoke backup snapshot ${stamp}`,
+    }),
+    updateBody: ({ stamp }) => ({
+      notes: `first-run backup snapshot smoke updated ${stamp}`,
+      status: 'expired',
+    }),
+    validateCreated: (payload, body) => {
+      assert(String(payload.summary ?? '').includes(String(body.summary ?? '')), 'backup-snapshots POST did not preserve the requested summary.')
+    },
+    validateUpdated: (payload) => {
+      assert(payload.status === 'expired', 'backup-snapshots PATCH did not persist the update.')
+    },
+  },
+  {
+    collection: 'billing-customers',
+    createBody: ({ organizationId, stamp }) => ({
+      currency: 'JPY',
+      email: `smoke-billing-${stamp}@example.com`,
+      metadata: { smoke: true, stamp },
+      organization: organizationId,
+      stripeCustomerId: `cus_smoke_${stamp}`,
+      taxStatus: 'unverified',
+    }),
+    updateBody: ({ stamp }) => ({
+      currency: 'USD',
+      taxStatus: `updated-${stamp}`,
+    }),
+    validateCreated: (payload, body) => {
+      assert(String(payload.stripeCustomerId ?? '').includes(String(body.stripeCustomerId ?? '')), 'billing-customers POST did not preserve the requested Stripe customer id.')
+    },
+    validateUpdated: (payload) => {
+      assert(payload.currency === 'USD', 'billing-customers PATCH did not persist the update.')
+    },
+  },
+]
 
 const parseArgs = () => {
   const options = {
@@ -309,6 +543,39 @@ const assertHeaderContains = (response, headerName, expectedValue, message) => {
   )
 }
 
+const assertManifestedPage = async (entry, headers = {}) => {
+  const response = await fetchWithTimeout(`${options.baseUrl}${entry.pathname}`, {
+    headers: {
+      accept: 'text/html,application/xhtml+xml',
+      ...headers,
+      'user-agent': 'studio99-smoke/first-run',
+    },
+  })
+
+  const text = await readText(response)
+
+  assert(response.ok, `${entry.pathname} returned ${response.status}.`)
+
+  for (const fragment of entry.mustInclude ?? []) {
+    assert(
+      text.includes(fragment),
+      `${entry.pathname} did not contain expected text: ${fragment}`,
+    )
+  }
+
+  for (const fragment of entry.oneOf ?? []) {
+    if (text.includes(fragment)) {
+      return
+    }
+  }
+
+  if ((entry.oneOf ?? []).length > 0) {
+    throw new Error(
+      `${entry.pathname} did not contain any expected text: ${entry.oneOf.join(' / ')}`,
+    )
+  }
+}
+
 const assertPage = async (pathname, expectations) => {
   const response = await fetchWithTimeout(`${options.baseUrl}${pathname}`, {
     headers: {
@@ -488,34 +755,64 @@ const loginOwner = async (credentials) => {
   return cookieHeader
 }
 
-const createAdminCrudSmokeKey = () =>
-  `smoke-admin-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`
+const createSmokeStamp = () =>
+  `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`
 
-const runAdminCrudSmoke = async (sessionCookie) => {
+const resolveSmokeOrganizationId = async (sessionCookie, fallbackOrganizationId) => {
+  if (fallbackOrganizationId) {
+    return String(fallbackOrganizationId)
+  }
+
   if (!sessionCookie) {
-    log('[skip] /admin CRUD smoke is skipped because no authenticated owner session is available.')
+    return null
+  }
+
+  const response = await fetchWithTimeout(`${options.baseUrl}/api/organizations?limit=1&depth=0`, {
+    headers: {
+      accept: 'application/json',
+      cookie: sessionCookie,
+      'user-agent': 'studio99-smoke/first-run',
+    },
+  })
+
+  if (!response.ok) {
+    return null
+  }
+
+  const payload = await readJson(response)
+  const firstOrg = Array.isArray(payload.docs) ? payload.docs[0] : null
+
+  return firstOrg?.id ? String(firstOrg.id) : null
+}
+
+const runCrudRoundTripSmoke = async ({
+  collection,
+  createBody,
+  updateBody,
+  validateCreated,
+  validateUpdated,
+  sessionCookie,
+  stamp,
+}) => {
+  if (!sessionCookie) {
+    log(`[skip] /api/${collection} CRUD smoke is skipped because no authenticated owner session is available.`)
     return
   }
 
-  const key = createAdminCrudSmokeKey()
   const baseHeaders = {
     cookie: sessionCookie,
     'content-type': 'application/json',
     'user-agent': 'studio99-smoke/first-run',
   }
 
+  const createPayloadBody = typeof createBody === 'function' ? createBody({ stamp }) : createBody
+  const updatePayloadBody = typeof updateBody === 'function' ? updateBody({ stamp }) : updateBody
+
   let createdId = null
 
   try {
-    const createResponse = await fetchWithTimeout(`${options.baseUrl}/api/feature-flags`, {
-      body: JSON.stringify({
-        enabled: false,
-        environment: 'development',
-        key,
-        notes: 'admin CRUD smoke',
-        scopeId: '*',
-        scopeType: 'platform',
-      }),
+    const createResponse = await fetchWithTimeout(`${options.baseUrl}/api/${collection}`, {
+      body: JSON.stringify(createPayloadBody),
       headers: {
         accept: 'application/json',
         ...baseHeaders,
@@ -525,15 +822,19 @@ const runAdminCrudSmoke = async (sessionCookie) => {
     const createdPayload = await readJson(createResponse)
     assert(
       createResponse.ok,
-      `/api/feature-flags POST returned ${createResponse.status}: ${
+      `/api/${collection} POST returned ${createResponse.status}: ${
         createdPayload.error ?? createdPayload.message ?? 'unknown error'
       }`,
     )
-    assert(typeof createdPayload.id === 'string' && createdPayload.id.length > 0, '/api/feature-flags POST did not return an id.')
-    assert(createdPayload.key === key, '/api/feature-flags POST did not preserve the requested key.')
-    createdId = createdPayload.id
+    assert(
+      (typeof createdPayload.id === 'string' && createdPayload.id.length > 0) ||
+        typeof createdPayload.id === 'number',
+      `/api/${collection} POST did not return an id.`,
+    )
+    createdId = String(createdPayload.id)
+    validateCreated(createdPayload, createPayloadBody, stamp)
 
-    const readResponse = await fetchWithTimeout(`${options.baseUrl}/api/feature-flags/${createdId}`, {
+    const readResponse = await fetchWithTimeout(`${options.baseUrl}/api/${collection}/${createdId}`, {
       headers: {
         accept: 'application/json',
         ...baseHeaders,
@@ -542,18 +843,14 @@ const runAdminCrudSmoke = async (sessionCookie) => {
     const readPayload = await readJson(readResponse)
     assert(
       readResponse.ok,
-      `/api/feature-flags/${createdId} GET returned ${readResponse.status}: ${
+      `/api/${collection}/${createdId} GET returned ${readResponse.status}: ${
         readPayload.error ?? readPayload.message ?? 'unknown error'
       }`,
     )
-    assert(readPayload.id === createdId, '/api/feature-flags GET did not return the created document.')
-    assert(readPayload.key === key, '/api/feature-flags GET did not return the created key.')
+    assert(String(readPayload.id) === createdId, `/api/${collection} GET did not return the created document.`)
 
-    const updateResponse = await fetchWithTimeout(`${options.baseUrl}/api/feature-flags/${createdId}`, {
-      body: JSON.stringify({
-        enabled: true,
-        notes: 'admin CRUD smoke updated',
-      }),
+    const updateResponse = await fetchWithTimeout(`${options.baseUrl}/api/${collection}/${createdId}`, {
+      body: JSON.stringify(updatePayloadBody),
       headers: {
         accept: 'application/json',
         ...baseHeaders,
@@ -563,13 +860,13 @@ const runAdminCrudSmoke = async (sessionCookie) => {
     const updatedPayload = await readJson(updateResponse)
     assert(
       updateResponse.ok,
-      `/api/feature-flags/${createdId} PATCH returned ${updateResponse.status}: ${
+      `/api/${collection}/${createdId} PATCH returned ${updateResponse.status}: ${
         updatedPayload.error ?? updatedPayload.message ?? 'unknown error'
       }`,
     )
-    assert(updatedPayload.enabled === true, '/api/feature-flags PATCH did not persist the update.')
+    validateUpdated(updatedPayload, updatePayloadBody, stamp)
 
-    const deleteResponse = await fetchWithTimeout(`${options.baseUrl}/api/feature-flags/${createdId}`, {
+    const deleteResponse = await fetchWithTimeout(`${options.baseUrl}/api/${collection}/${createdId}`, {
       headers: {
         accept: 'application/json',
         ...baseHeaders,
@@ -579,7 +876,7 @@ const runAdminCrudSmoke = async (sessionCookie) => {
     const deletedPayload = await readJson(deleteResponse)
     assert(
       deleteResponse.ok || deleteResponse.status === 204,
-      `/api/feature-flags/${createdId} DELETE returned ${deleteResponse.status}: ${
+      `/api/${collection}/${createdId} DELETE returned ${deleteResponse.status}: ${
         deletedPayload.error ?? deletedPayload.message ?? 'unknown error'
       }`,
     )
@@ -589,7 +886,7 @@ const runAdminCrudSmoke = async (sessionCookie) => {
     }
 
     try {
-      await fetchWithTimeout(`${options.baseUrl}/api/feature-flags/${createdId}`, {
+      await fetchWithTimeout(`${options.baseUrl}/api/${collection}/${createdId}`, {
         headers: {
           accept: 'application/json',
           ...baseHeaders,
@@ -835,113 +1132,69 @@ const run = async () => {
     log('[ok] /api/users/me')
   }
 
-  await assertPage('/console/projects', {
-    headers: sessionCookie
-      ? {
-          cookie: sessionCookie,
-        }
-      : undefined,
-    mustInclude: ['Studio99 Console'],
-    oneOf: ['Projects', 'platform user でサインインしてください。'],
-  })
-  log('[ok] /console/projects')
-
-  await assertPage('/console/factory', {
-    headers: sessionCookie
-      ? {
-          cookie: sessionCookie,
-        }
-      : undefined,
-    mustInclude: ['Studio99 Console'],
-    oneOf: ['Factory', 'platform user でサインインしてください。'],
-  })
-  log('[ok] /console/factory')
-
-  await assertPage('/console/users', {
-    headers: sessionCookie
-      ? {
-          cookie: sessionCookie,
-        }
-      : undefined,
-    mustInclude: ['Studio99 Console'],
-    oneOf: ['Users', 'platform user でサインインしてください。'],
-  })
-  log('[ok] /console/users')
-
-  await assertPage('/console/billing', {
-    headers: sessionCookie
-      ? {
-          cookie: sessionCookie,
-        }
-      : undefined,
-    mustInclude: ['Studio99 Console'],
-    oneOf: ['Billing', 'platform user でサインインしてください。'],
-  })
-  log('[ok] /console/billing')
-
-  await assertPage('/admin', {
-    oneOf: ['Payload', 'Log in', 'admin'],
-    headers: sessionCookie
-      ? {
-          cookie: sessionCookie,
-        }
-      : undefined,
-  })
-  log('[ok] /admin')
-
-  if (sessionCookie) {
-    await assertPage('/admin/collections/feature-flags', {
-      headers: {
+  const routeHeaders = sessionCookie
+    ? {
         cookie: sessionCookie,
-      },
-      mustInclude: ['Payload'],
-      oneOf: ['feature-flags', 'Feature Flags', 'Log in'],
-    })
-    log('[ok] /admin/collections/feature-flags')
+      }
+    : undefined
 
-    await runAdminCrudSmoke(sessionCookie)
-    log('[ok] /admin CRUD smoke')
+  for (const pathname of ROUTE_CHAIN_MANIFEST) {
+    const entry = PAGE_ROUTE_MANIFEST.find((candidate) => candidate.pathname === pathname)
+    assert(entry, `Route manifest entry missing for ${pathname}.`)
+    await assertManifestedPage(entry, routeHeaders)
+    log(`[ok] ${pathname}`)
   }
 
-  await assertPage('/console', {
-    headers: sessionCookie
-      ? {
-          cookie: sessionCookie,
-        }
-      : undefined,
-    oneOf: sessionCookie
-      ? ['Overview', 'この core の現在地', 'console の準備がまだ終わっていません']
-      : ['Overview', 'console access required', 'console の準備がまだ終わっていません'],
-  })
-  log('[ok] /console')
+  for (const pathname of [
+    '/admin/collections/feature-flags',
+    '/admin/collections/support-notes',
+    '/admin/collections/operational-events',
+    '/admin/collections/backup-snapshots',
+    '/admin/collections/billing-customers',
+    '/console/projects',
+    '/console/factory',
+    '/console/users',
+    '/console/security',
+    '/console/data',
+    '/app',
+    '/app/example',
+    '/app/console',
+    '/app/security',
+  ]) {
+    const entry = PAGE_ROUTE_MANIFEST.find((candidate) => candidate.pathname === pathname)
+    assert(entry, `Route manifest entry missing for ${pathname}.`)
+    await assertManifestedPage(entry, routeHeaders)
+    log(`[ok] ${pathname}`)
+  }
 
-  await assertPage('/console/recovery', {
-    headers: sessionCookie
-      ? {
-          cookie: sessionCookie,
-        }
-      : undefined,
-    mustInclude: ['Studio99 Console'],
-    oneOf: ['Recovery', 'platform user でサインインしてください。'],
-  })
-  log('[ok] /console/recovery')
+  if (sessionCookie) {
+    const organizationId = await resolveSmokeOrganizationId(sessionCookie, currentOrganizationId)
 
-  await assertPage('/console/security', {
-    headers: sessionCookie
-      ? {
-          cookie: sessionCookie,
-        }
-      : undefined,
-    mustInclude: ['Studio99 Console'],
-    oneOf: ['Security', 'platform user でサインインしてください。'],
-  })
-  log('[ok] /console/security')
-
-  await assertPage('/app', {
-    mustInclude: ['/console', '/admin'],
-    oneOf: ['launchpad', '最短ルート', 'project'],
-  })
-  log('[ok] /app')
+    if (!organizationId) {
+      log('[skip] organization scoped CRUD smoke is skipped because no organization could be resolved.')
+    } else {
+      for (const spec of ADMIN_COLLECTION_CRUD_MANIFEST) {
+        await runCrudRoundTripSmoke({
+          collection: spec.collection,
+          createBody: ({ stamp }) =>
+            spec.createBody({
+              organizationId,
+              stamp,
+            }),
+          sessionCookie,
+          stamp: createSmokeStamp(),
+          updateBody: ({ stamp }) =>
+            spec.updateBody({
+              organizationId,
+              stamp,
+            }),
+          validateCreated: spec.validateCreated,
+          validateUpdated: spec.validateUpdated,
+        })
+        log(`[ok] /api/${spec.collection} CRUD smoke`)
+      }
+    }
+  }
 
   await assertRouteReachable('/api/users/logout', {
     acceptableStatuses: [200, 204, 400, 401, 403, 405],

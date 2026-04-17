@@ -2,6 +2,7 @@ const requiredEnvKeys = ['DATABASE_URL', 'PAYLOAD_SECRET', 'NEXT_PUBLIC_SERVER_U
 
 type RequiredEnvKey = (typeof requiredEnvKeys)[number]
 
+const nodeEnv = optionalEnv('NODE_ENV', 'development')
 const storageProviders = ['local', 's3'] as const
 type StorageProvider = (typeof storageProviders)[number]
 const authCookieSameSiteValues = ['Lax', 'None', 'Strict'] as const
@@ -116,7 +117,7 @@ export const env = {
   DATABASE_URL: requireEnv('DATABASE_URL'),
   NEXT_PUBLIC_SERVER_URL: requireEnv('NEXT_PUBLIC_SERVER_URL'),
   PAYLOAD_SECRET: requireEnv('PAYLOAD_SECRET'),
-  NODE_ENV: optionalEnv('NODE_ENV', 'development'),
+  NODE_ENV: nodeEnv,
   mail: {
     enabled: booleanEnv('SMTP_ENABLED', true),
     host: optionalEnv('SMTP_HOST', 'localhost'),
@@ -161,7 +162,7 @@ export const env = {
   auth: {
     cookieDomain: optionalEnv('AUTH_COOKIE_DOMAIN') || undefined,
     cookieSameSite: authCookieSameSite,
-    cookieSecure: booleanEnv('AUTH_COOKIE_SECURE', optionalEnv('NODE_ENV', 'development') === 'production'),
+    cookieSecure: booleanEnv('AUTH_COOKIE_SECURE', nodeEnv === 'production'),
     forgotPasswordExpirationMs: integerEnv('AUTH_FORGOT_PASSWORD_EXPIRATION_MS', 60 * 60 * 1000),
     lockTimeMs: integerEnv('AUTH_LOCK_TIME_MS', 10 * 60 * 1000),
     maxLoginAttempts: integerEnv('AUTH_MAX_LOGIN_ATTEMPTS', 5),

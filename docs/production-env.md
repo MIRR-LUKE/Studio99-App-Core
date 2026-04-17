@@ -100,8 +100,10 @@ billing を使うなら次を設定します。
 
 ### security
 
-- 単一 instance だけなら `SECURITY_RATE_LIMIT_STORE=memory` でよいです
-- 複数 instance / serverless 本番では `SECURITY_RATE_LIMIT_STORE=upstash-redis` を使います
+- 開発中は `SECURITY_RATE_LIMIT_STORE=memory` でもよいです
+- 本番では `SECURITY_RATE_LIMIT_STORE=upstash-redis` を必須にします
+- この repo は production で `SECURITY_RATE_LIMIT_STORE=memory` を受け付けません
+- shared store が落ちたときも production では memory fallback しません
 - `SECURITY_RATE_LIMIT_STORE_URL` と `SECURITY_RATE_LIMIT_STORE_TOKEN` は `upstash-redis` 用です
 
 - `SECURITY_CORS_ALLOWLIST`
@@ -129,6 +131,7 @@ billing を使うなら次を設定します。
 - `S3_ENDPOINT=http://localhost:9000`
 - `MINIO_CONSOLE_URL=http://localhost:9001`
 - `STRIPE_ENABLED=false`
+- `SECURITY_RATE_LIMIT_STORE=memory`（production）
 
 本番では、ローカル開発用の値をそのまま流用しないでください。
 

@@ -7,6 +7,9 @@ Studio99 Application Core のセキュリティ基盤は、middleware と route 
 - baseline security headers は `src/core/security/http.ts` で共通化する
 - CSP は development と production で分ける
 - production では `unsafe-eval` を外し、`connect-src` も local 開発向けの `http:` / `ws:` を含めない
+- production の `script-src` は `https:` を広く許可せず、Stripe を使う時だけ `https://js.stripe.com` を個別に足す
+- production の `style-src` は `https:` を広く許可せず、`'self'` と `'unsafe-inline'` のみに寄せる
+- production の `connect-src` は `https:` を広く許可せず、必要なら Stripe の API 系 endpoint だけを個別に足す
 - HSTS / frame policy / nosniff / referrer-policy は共通で付与する
 - authenticated な API response は `no-store` を基本にする
 - mutation route は same-origin / CSRF guard を通す
@@ -15,6 +18,7 @@ Studio99 Application Core のセキュリティ基盤は、middleware と route 
 - app の通常処理は `createScopedLocalApi` を使い、`overrideAccess: true` が必要な処理は `createSystemLocalApi` に閉じる
 - `createSystemLocalApi` と `withInternalAccess` は reason 必須で、`studio99InternalAccess` と `studio99InternalReason` を context に残す
 - organization scope の判定は request 単位でまとめ、access helper が同じ membership を何度も引き直さない
+- production では `SECURITY_RATE_LIMIT_STORE=memory` を禁止し、shared store なしでは起動時に失敗する
 
 ## 対象
 
@@ -54,3 +58,4 @@ same-origin / CSRF guard と rate limit を特に強めるのは次です。
 - `/api/core/invites` と `/api/core/invites/accept` は no-store を維持する
 - `/api/bootstrap/platform-owner` は no-store と security headers を維持する
 - 本番で複数 instance を動かすときは `SECURITY_RATE_LIMIT_STORE=upstash-redis` を使う
+- production で shared rate limit store が落ちた場合は memory fallback せず、その request を失敗扱いにする

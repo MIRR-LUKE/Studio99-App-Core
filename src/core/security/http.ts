@@ -4,6 +4,26 @@ import { env } from '@/lib/env'
 
 const isProduction = env.NODE_ENV === 'production'
 
+const getProductionScriptSrc = () => {
+  const sources = ["'self'", "'unsafe-inline'"]
+
+  if (env.stripe.enabled) {
+    sources.push('https://js.stripe.com')
+  }
+
+  return `script-src ${sources.join(' ')}`
+}
+
+const getProductionConnectSrc = () => {
+  const sources = ["'self'"]
+
+  if (env.stripe.enabled) {
+    sources.push('https://api.stripe.com', 'https://m.stripe.com', 'https://r.stripe.com')
+  }
+
+  return `connect-src ${sources.join(' ')}`
+}
+
 const getContentSecurityPolicy = () =>
   [
     "default-src 'self'",
@@ -14,11 +34,11 @@ const getContentSecurityPolicy = () =>
     "img-src 'self' data: blob: https:",
     "media-src 'self' data: blob: https:",
     "font-src 'self' data: https:",
-    "style-src 'self' 'unsafe-inline' https:",
+    isProduction ? "style-src 'self' 'unsafe-inline'" : "style-src 'self' 'unsafe-inline' https:",
     isProduction
-      ? "script-src 'self' 'unsafe-inline' https:"
+      ? getProductionScriptSrc()
       : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
-    isProduction ? "connect-src 'self' https: wss:" : "connect-src 'self' https: http: ws: wss:",
+    isProduction ? getProductionConnectSrc() : "connect-src 'self' https: http: ws: wss:",
   ].join('; ')
 
 const getSecurityHeaders = (): Record<string, string> => ({

@@ -8,8 +8,20 @@
 - `/bootstrap/owner`
 - `/admin`
 - `/admin/collections/feature-flags`
+- `/admin/collections/support-notes`
+- `/admin/collections/operational-events`
+- `/admin/collections/backup-snapshots`
+- `/admin/collections/billing-customers`
 - `/console`
+- `/console/billing`
+- `/console/jobs`
+- `/console/recovery`
+- `/console/security`
+- `/console/data`
 - `/app`
+- `/app/example`
+- `/app/console`
+- `/app/security`
 - `/api/health`
 - `/api/ready`
 
@@ -17,9 +29,9 @@
 
 CI では `build` のあとに `scripts/smoke-first-run.mjs` を回します。
 この smoke はアプリを起動してから、上の route を順番に確認します。
-加えて、`/console` の代表サブページと auth / invite の代表 route も軽く通して、表側の導線が壊れていないかを見ます。
+加えて、`/bootstrap/owner → /admin → /console → /console/billing → /console/jobs → /console/recovery` の連鎖も順番に通して、表側の導線が壊れていないかを見ます。
 さらに、`scripts/security-route-audit.mjs` で state-changing route の same-origin / rate limit を静的に監査し、`/api/bootstrap/platform-owner` と auth cookie の基本ヘッダも確認します。
-`/admin` は `feature-flags` の CRUD を 1 回だけ実際に通して、裏口として編集できることも確認します。
+`/admin` は `feature-flags` だけでなく `support-notes` / `operational-events` / `backup-snapshots` / `billing-customers` の CRUD も通して、裏口として編集できることを広げて確認します。
 billing webhook については invalid signature / valid event / duplicate event の 3 パターンを smoke に入れています。
 
 ## ローカルで回す

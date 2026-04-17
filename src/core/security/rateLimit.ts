@@ -36,6 +36,8 @@ declare global {
   var __studio99UpstashRateLimitRedis: Redis | undefined
 }
 
+const isProduction = env.NODE_ENV === 'production'
+
 const getStore = () => {
   globalThis.__studio99RateLimitStore ??= new Map<string, RateLimitEntry>()
   return globalThis.__studio99RateLimitStore
@@ -56,7 +58,7 @@ const warnAboutFallback = (error: unknown) => {
   }
 
   globalThis.__studio99RateLimitStoreFallbackWarned = true
-  console.error('[security] shared rate limit store is unavailable. Falling back to in-memory store.', error)
+  console.error('[security] shared rate limit store is unavailable.', error)
 }
 
 const isIpv4 = (value: string) =>
@@ -198,11 +200,22 @@ const checkRateLimit = async (
   limit: number,
   windowMs: number,
 ): Promise<RateLimitResult> => {
+  if (isProduction && env.security.rateLimitStore === 'memory') {
+    throw new Error(
+      'SECURITY_RATE_LIMIT_STORE=memory is not allowed in production. Use SECURITY_RATE_LIMIT_STORE=upstash-redis with its URL and token.',
+    )
+  }
+
   if (env.security.rateLimitStore === 'upstash-redis') {
     try {
       return await checkRateLimitInUpstash(key, limit, windowMs)
     } catch (error) {
       warnAboutFallback(error)
+
+      if (isProduction) {
+        throw new Error('Shared rate limit store is required in production.')
+      }
+
       return checkRateLimitInMemory(key, limit, windowMs, 'memory-fallback')
     }
   }
