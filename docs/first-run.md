@@ -46,7 +46,13 @@ npm run dev
 
 ブラウザで `http://localhost:3000/bootstrap/owner` を開きます。
 
-そこで最初の `platform_owner` を作ります。
+ここではまず bootstrap 状態を確認します。
+
+- `BOOTSTRAP_OWNER_TOKEN` がない場合は止まる
+- すでに `platform_owner` がいる場合は止まる
+- email の形式と password の長さも先にチェックする
+
+条件を満たしたら最初の `platform_owner` を作ります。
 これが、その環境の最初の管理者です。
 
 ## 7. 次に開く場所
@@ -100,3 +106,4 @@ repo には `example` project を同梱しています。
 - [docs/how-to-use.md](./how-to-use.md)
 - [docs/bootstrap.md](./bootstrap.md)
 - [docs/ops.md](./ops.md)
+- [docs/smoke-checks.md](./smoke-checks.md)

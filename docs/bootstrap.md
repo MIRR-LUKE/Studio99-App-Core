@@ -13,6 +13,7 @@
 - template を選ぶ
 - manifest を確認する
 - scaffold を作る
+- 作成後に app / api / docs / 次の編集ポイントをその場で確認する
 
 ### 2. コマンドで作る
 

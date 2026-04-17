@@ -22,6 +22,12 @@ Studio99 Application Core の auth は session-first で運用します。
 - `platformRole`
 - `status`
 - `lastLoginAt`
+- `security.passwordChangedAt`
+- `security.mfa.enabled`
+- `security.mfa.preferredMethod`
+- `security.mfa.enrolledAt`
+- `security.mfa.verifiedAt`
+- `security.mfa.recoveryCodeVersion`
 
 `status` は少なくとも次を想定します。
 
@@ -89,10 +95,24 @@ production で必要な設定が欠けている場合は、起動時または bu
 
 MFA を後から足せる余地を残します。
 
-- `mfaEnabled`
+- `security.mfa.enabled`
+- `security.mfa.preferredMethod`
+- `security.mfa.enrolledAt`
+- `security.mfa.verifiedAt`
+- `security.mfa.recoveryCodeVersion`
 - recovery code
 - TOTP
+- WebAuthn
 - device / session metadata
 
 ここは今すぐ強制しませんが、データモデルは伸ばせる形にしておきます。
 
+## first owner bootstrap
+
+最初の `platform_owner` 作成は `/bootstrap/owner` と `/api/bootstrap/platform-owner` で行います。
+
+- `BOOTSTRAP_OWNER_TOKEN` がないと作成できない
+- すでに `platform_owner` がいれば止まる
+- email は形式チェックする
+- password は 12 文字以上、256 文字以内にする
+- 送信前に bootstrap 状態を確認する

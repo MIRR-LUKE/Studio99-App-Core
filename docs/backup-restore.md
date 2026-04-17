@@ -114,6 +114,8 @@ soft delete した media は、ops 経由で戻せるようにします。
 - archive 時は `deletedAt` / `deletedBy` / `retentionState` / `retentionUntil` を記録する
 - restore 時は `deletedAt` と `deletedBy` を外し、`retentionState` を `active` に戻す
 - restore 導線は `/api/core/media/:id/restore`
+- maintenance sweep は期限切れの `media` を `purged`、`backup-snapshots` を `expired` に進める
+- 物理削除は別 job に分離し、通常の app route からは行わない
 
 ## Ops 記録
 
@@ -123,4 +125,3 @@ soft delete した media は、ops 経由で戻せるようにします。
 - restore drill の記録
 
 どちらも application-level audit trail として `operational-events` から辿れます。
-

@@ -56,6 +56,94 @@ const task = <TInput extends TaskInputMap, TOutput extends TaskOutputMap>(config
     output: TOutput
   }>
 
+const RETENTION_SWEEP_LIMIT = 100
+
+const getRetentionSweepCutoff = () => new Date().toISOString()
+
+type RetentionCandidate = {
+  id: number | string
+  retentionUntil?: null | string
+}
+
+const isBeforeOrEqualNow = (value?: null | string) => {
+  if (!value) {
+    return false
+  }
+
+  const parsed = new Date(value)
+  return !Number.isNaN(parsed.getTime()) && parsed.getTime() <= Date.now()
+}
+
+const markExpiredMedia = async (req: PayloadRequest) => {
+  const api = createSystemLocalApi(req, 'run media retention sweep')
+  const media = await api.find({
+    collection: 'media',
+    depth: 0,
+    limit: RETENTION_SWEEP_LIMIT,
+    where: {
+      retentionState: {
+        equals: 'scheduled_for_purge',
+      },
+    },
+  })
+
+  const mediaDocs: RetentionCandidate[] = media.docs as RetentionCandidate[]
+  const dueMedia = mediaDocs.filter((doc) => isBeforeOrEqualNow(doc.retentionUntil))
+
+  await Promise.all(
+    dueMedia.map((doc: RetentionCandidate) =>
+      api.update({
+        collection: 'media',
+        depth: 0,
+        id: doc.id,
+        data: {
+          retentionState: 'purged',
+        },
+      }),
+    ),
+  )
+
+  return {
+    scanned: mediaDocs.length,
+    updated: dueMedia.length,
+  }
+}
+
+const expireBackupSnapshots = async (req: PayloadRequest) => {
+  const api = createSystemLocalApi(req, 'run backup retention sweep')
+  const snapshots = await api.find({
+    collection: 'backup-snapshots',
+    depth: 0,
+    limit: RETENTION_SWEEP_LIMIT,
+    where: {
+      status: {
+        equals: 'available',
+      },
+    },
+  })
+
+  const snapshotDocs: RetentionCandidate[] = snapshots.docs as RetentionCandidate[]
+  const dueSnapshots = snapshotDocs.filter((doc) => isBeforeOrEqualNow(doc.retentionUntil))
+
+  await Promise.all(
+    dueSnapshots.map((doc: RetentionCandidate) =>
+      api.update({
+        collection: 'backup-snapshots',
+        depth: 0,
+        id: doc.id,
+        data: {
+          status: 'expired',
+        },
+      }),
+    ),
+  )
+
+  return {
+    scanned: snapshotDocs.length,
+    updated: dueSnapshots.length,
+  }
+}
+
 const CORE_TASK_QUEUE_MAP = {
   'ai-post-process': 'ai',
   'deliver-email': 'emails',
@@ -182,9 +270,21 @@ export const coreTasks: TaskConfig<any>[] = [
           },
         },
       })
+      const [mediaRetention, backupRetention] = await Promise.all([
+        markExpiredMedia(req),
+        expireBackupSnapshots(req),
+      ])
+
+      const retentionSummary = {
+        backupSnapshots: backupRetention.updated,
+        billingEvents: staleBillingEvents.totalDocs,
+        media: mediaRetention.updated,
+      }
 
       await operationalEvent({
         detail: {
+          retentionSummary,
+          scannedAt: getRetentionSweepCutoff(),
           staleBillingEvents: staleBillingEvents.totalDocs,
         },
         eventType: 'maintenance_action',
@@ -197,11 +297,17 @@ export const coreTasks: TaskConfig<any>[] = [
 
       return {
         output: {
+          backupRetention: backupRetention.updated,
           staleBillingEvents: staleBillingEvents.totalDocs,
+          mediaRetention: mediaRetention.updated,
         },
       }
     },
-    outputSchema: [{ name: 'staleBillingEvents', type: 'number', required: true }],
+    outputSchema: [
+      { name: 'backupRetention', type: 'number', required: true },
+      { name: 'mediaRetention', type: 'number', required: true },
+      { name: 'staleBillingEvents', type: 'number', required: true },
+    ],
     slug: 'run-maintenance',
   }),
 ]

@@ -116,6 +116,8 @@ export const Users: CollectionConfig = {
       options: [
         { label: 'Active', value: 'active' },
         { label: 'Invited', value: 'invited' },
+        { label: 'Disabled', value: 'disabled' },
+        { label: 'Locked', value: 'locked' },
         { label: 'Suspended', value: 'suspended' },
       ],
     },
@@ -126,6 +128,57 @@ export const Users: CollectionConfig = {
         position: 'sidebar',
         readOnly: true,
       },
+    },
+    {
+      name: 'security',
+      type: 'group',
+      fields: [
+        {
+          name: 'passwordChangedAt',
+          type: 'date',
+          admin: {
+            position: 'sidebar',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'mfa',
+          type: 'group',
+          fields: [
+            {
+              name: 'enabled',
+              type: 'checkbox',
+              defaultValue: false,
+            },
+            {
+              name: 'preferredMethod',
+              type: 'select',
+              defaultValue: 'totp',
+              options: [
+                { label: 'TOTP', value: 'totp' },
+                { label: 'WebAuthn', value: 'webauthn' },
+                { label: 'Email', value: 'email' },
+              ],
+            },
+            {
+              name: 'enrolledAt',
+              type: 'date',
+            },
+            {
+              name: 'verifiedAt',
+              type: 'date',
+            },
+            {
+              name: 'recoveryCodeVersion',
+              type: 'number',
+              defaultValue: 0,
+              admin: {
+                readOnly: true,
+              },
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'notificationSettings',

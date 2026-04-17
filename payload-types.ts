@@ -198,8 +198,18 @@ export interface User {
     | null;
   timezone?: string | null;
   locale?: string | null;
-  status?: ('active' | 'invited' | 'suspended') | null;
+  status?: ('active' | 'invited' | 'disabled' | 'locked' | 'suspended') | null;
   lastLoginAt?: string | null;
+  security?: {
+    passwordChangedAt?: string | null;
+    mfa?: {
+      enabled?: boolean | null;
+      preferredMethod?: ('totp' | 'webauthn' | 'email') | null;
+      enrolledAt?: string | null;
+      verifiedAt?: string | null;
+      recoveryCodeVersion?: number | null;
+    };
+  };
   notificationSettings?: {
     billing?: {
       email?: boolean | null;
@@ -853,6 +863,20 @@ export interface UsersSelect<T extends boolean = true> {
   locale?: T;
   status?: T;
   lastLoginAt?: T;
+  security?:
+    | T
+    | {
+        passwordChangedAt?: T;
+        mfa?:
+          | T
+          | {
+              enabled?: T;
+              preferredMethod?: T;
+              enrolledAt?: T;
+              verifiedAt?: T;
+              recoveryCodeVersion?: T;
+            };
+      };
   notificationSettings?:
     | T
     | {
@@ -1558,6 +1582,8 @@ export interface TaskAiPostProcess {
 export interface TaskRunMaintenance {
   input?: unknown;
   output: {
+    backupRetention: number;
+    mediaRetention: number;
     staleBillingEvents: number;
   };
 }

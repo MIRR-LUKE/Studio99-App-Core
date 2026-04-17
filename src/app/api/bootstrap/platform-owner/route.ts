@@ -1,16 +1,75 @@
 import { NextResponse } from 'next/server'
 
-import { createFirstPlatformOwner } from '@/core/ops/bootstrapOwner'
+import {
+  createFirstPlatformOwner,
+  getBootstrapOwnerStatus,
+  recordBootstrapOwnerEvent,
+} from '@/core/ops/bootstrapOwner'
 import { createPayloadRequestContext } from '@/core/server/payloadRequest'
 import { applySecurityHeaders, createSameOriginMutationGuard, enforceRateLimit } from '@/core/security'
 import { env } from '@/lib/env'
 
 export const runtime = 'nodejs'
 
+type BootstrapOwnerBody = {
+  displayName?: string
+  email?: string
+  password?: string
+  token?: string
+}
+
 const createResponse = (request: Request, body: Record<string, unknown>, status = 200) =>
   applySecurityHeaders(NextResponse.json(body, { status }), request, {
     cacheControl: 'no-store',
   })
+
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+export async function GET(request: Request) {
+  if (!env.bootstrap.ownerToken) {
+    return createResponse(
+      request,
+      {
+        adminUrl: '/admin',
+        appUrl: '/app',
+        consoleUrl: '/console',
+        enabled: false,
+        hasPlatformOwner: false,
+        ready: false,
+        reason: 'BOOTSTRAP_OWNER_TOKEN is not configured.',
+      },
+      503,
+    )
+  }
+
+  try {
+    const { req } = await createPayloadRequestContext(request)
+    const status = await getBootstrapOwnerStatus(req)
+
+    return createResponse(request, {
+      adminUrl: status.adminUrl,
+      appUrl: status.appUrl,
+      consoleUrl: status.consoleUrl,
+      enabled: status.enabled,
+      hasPlatformOwner: status.hasPlatformOwner,
+      ready: status.enabled && !status.hasPlatformOwner,
+    })
+  } catch (error) {
+    return createResponse(
+      request,
+      {
+        adminUrl: '/admin',
+        appUrl: '/app',
+        consoleUrl: '/console',
+        enabled: true,
+        hasPlatformOwner: false,
+        ready: false,
+        reason: error instanceof Error ? error.message : 'Failed to inspect bootstrap status.',
+      },
+      503,
+    )
+  }
+}
 
 export async function POST(request: Request) {
   const sameOriginGuard = createSameOriginMutationGuard(request)
@@ -37,19 +96,26 @@ export async function POST(request: Request) {
     )
   }
 
-  const body = (await request.json().catch(() => ({}))) as {
-    displayName?: string
-    email?: string
-    password?: string
-    token?: string
-  }
+  const body = (await request.json().catch(() => ({}))) as BootstrapOwnerBody
 
-  if (!body.email || !body.password || !body.token) {
+  const displayName = body.displayName?.trim()
+  const email = body.email?.trim().toLowerCase()
+  const token = body.token?.trim()
+
+  if (!email || !body.password || !token) {
     return createResponse(
       request,
       { error: 'email, password, token are required.' },
       400,
     )
+  }
+
+  if (!isValidEmail(email)) {
+    return createResponse(request, { error: 'email must be a valid address.' }, 400)
+  }
+
+  if (displayName && displayName.length > 120) {
+    return createResponse(request, { error: 'displayName must be 120 characters or fewer.' }, 400)
   }
 
   if (body.password.length < 12) {
@@ -60,31 +126,60 @@ export async function POST(request: Request) {
     )
   }
 
-  if (body.token !== env.bootstrap.ownerToken) {
+  if (body.password.length > 256) {
+    return createResponse(request, { error: 'password must be 256 characters or fewer.' }, 400)
+  }
+
+  let reqContext: Awaited<ReturnType<typeof createPayloadRequestContext>>
+
+  try {
+    reqContext = await createPayloadRequestContext(request)
+  } catch (error) {
+    return createResponse(
+      request,
+      {
+        error:
+          error instanceof Error ? error.message : 'Failed to initialize bootstrap context.',
+      },
+      503,
+    )
+  }
+
+  if (token !== env.bootstrap.ownerToken) {
+    await recordBootstrapOwnerEvent({
+      email,
+      reason: 'bootstrap owner token mismatch',
+      req: reqContext.req,
+      status: 'failed',
+      summary: 'Platform owner bootstrap token mismatch',
+    })
+
     return createResponse(request, { error: 'Invalid bootstrap token.' }, 403)
   }
 
   try {
-    const { req } = await createPayloadRequestContext(request)
     const owner = await createFirstPlatformOwner({
-      displayName: body.displayName,
-      email: body.email,
+      displayName,
+      email,
       password: body.password,
-      req,
+      req: reqContext.req,
     })
 
     return createResponse(request, {
       adminUrl: '/admin',
+      appUrl: '/app',
       consoleUrl: '/console',
       ok: true,
       opsUrl: '/ops',
       userId: owner.id,
     })
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create platform owner.'
+
     return createResponse(
       request,
-      { error: error instanceof Error ? error.message : 'Failed to create platform owner.' },
-      400,
+      { error: message },
+      message === 'A platform owner already exists.' ? 409 : 400,
     )
   }
 }

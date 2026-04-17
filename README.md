@@ -194,10 +194,14 @@ npm run dev:infra
 npm run generate:types
 npm run generate:importmap
 npm run dev
-npm run typecheck
-npm run lint
 npm run build
+npm run typecheck
+npm run guard:override-access
+npm run lint
+npm run smoke:first-run
 ```
+
+smoke の細かい説明は [docs/smoke-checks.md](docs/smoke-checks.md) にまとめています。
 
 ## よくあるつまずき
 

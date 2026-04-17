@@ -23,6 +23,8 @@
 - 振る舞いが変わるなら docs か ADR を添える
 - 生成物が変わるなら検証結果を添える
 - danger route は review 後にしか触らない
+- `overrideAccess: true` は `src/core/server/localApi.ts` と `src/core/ops/jobs.ts` の approved wrapper に閉じる
+- retention / purge は状態遷移までを maintenance が担当し、物理削除は別 job に分ける
 
 ## core touching PR の確認点
 
@@ -32,6 +34,13 @@
 4. Local API の `overrideAccess` を広げていないか
 5. audit / operational event が残るか
 6. rollback か restore の筋道があるか
+
+## retention / purge の確認点
+
+- `deletedAt` / `retentionState` / `retentionUntil` の遷移が一貫しているか
+- maintenance が期限切れ対象を `purged` / `expired` に進めているか
+- 物理削除や storage delete を通常の app route に入れていないか
+- 直接の `overrideAccess: true` がガードスクリプトで検出されるか
 
 ## auth / billing の確認点
 
@@ -59,4 +68,3 @@
 - 変更範囲が狭い
 - 検証が通っている
 - rollback か restore の筋がある
-

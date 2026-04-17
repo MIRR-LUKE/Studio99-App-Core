@@ -22,7 +22,15 @@ type TemplateOption = {
 
 type WriteResult = {
   created: Array<{ file: string }>
+  links: {
+    apiRoute: string
+    appRoute: string
+    consoleFactoryRoute: string
+    consoleProjectsRoute: string
+    docsPath: string
+  }
   manifest: Manifest
+  nextSteps: string[]
   skipped: Array<{ file: string }>
 }
 
@@ -200,6 +208,18 @@ export function ProjectFactoryPanel({ templates }: Props) {
           <p style={{ margin: '0 0 10px' }}>
             作成結果: 新規 {result.created.length} 件 / 既存スキップ {result.skipped.length} 件
           </p>
+          <div style={{ display: 'grid', gap: '10px', marginBottom: '16px' }}>
+            <p style={{ margin: 0 }}>
+              すぐ開く場所: <a href={result.links.appRoute}>{result.links.appRoute}</a> /{' '}
+              <a href={result.links.apiRoute}>{result.links.apiRoute}</a> /{' '}
+              <a href={result.links.consoleProjectsRoute}>{result.links.consoleProjectsRoute}</a>
+            </p>
+            <ol style={{ lineHeight: 1.7, margin: 0, paddingLeft: '20px' }}>
+              {result.nextSteps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </div>
           {result.created.length > 0 ? <ManifestList items={result.created.map((item) => item.file)} title="created" /> : null}
           {result.skipped.length > 0 ? <ManifestList items={result.skipped.map((item) => item.file)} title="skipped" /> : null}
         </div>

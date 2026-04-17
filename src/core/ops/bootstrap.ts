@@ -42,6 +42,22 @@ export type ProjectTemplateOption = {
   value: ProjectTemplate
 }
 
+type ProjectBootstrapLinks = {
+  apiRoute: string
+  appRoute: string
+  consoleFactoryRoute: string
+  consoleProjectsRoute: string
+  docsPath: string
+}
+
+type ProjectBootstrapResult = {
+  created: Array<{ file: string; status: 'created' }>
+  links: ProjectBootstrapLinks
+  manifest: ReturnType<typeof buildProjectBootstrapManifest>
+  nextSteps: string[]
+  skipped: Array<{ file: string; status: 'skipped' }>
+}
+
 type BootstrapManifestArgs = {
   name: string
   projectKey: string
@@ -130,6 +146,25 @@ export const buildProjectBootstrapManifest = ({
     templateLabel: definition.label,
   }
 }
+
+export const getProjectBootstrapLinks = (
+  manifest: ReturnType<typeof buildProjectBootstrapManifest>,
+): ProjectBootstrapLinks => ({
+  apiRoute: `/api/${manifest.projectKey}`,
+  appRoute: `/app/${manifest.projectKey}`,
+  consoleFactoryRoute: '/console/factory',
+  consoleProjectsRoute: '/console/projects',
+  docsPath: `docs/projects/${manifest.projectKey}.md`,
+})
+
+export const getProjectBootstrapNextSteps = (
+  manifest: ReturnType<typeof buildProjectBootstrapManifest>,
+) => [
+  `まず ${manifest.projectKey} の project.config と feature-flags を確認する`,
+  `${getProjectBootstrapLinks(manifest).appRoute} を開いて最初の画面を作る`,
+  `${getProjectBootstrapLinks(manifest).apiRoute} を project 固有の API の始点にする`,
+  `${getProjectBootstrapLinks(manifest).docsPath} に要件と運用メモを書く`,
+]
 
 const buildProjectScaffoldFiles = ({
   name,
@@ -286,9 +321,11 @@ export const writeProjectScaffold = async (args: ProjectScaffoldArgs) => {
 
   return {
     created: results.filter((result) => result.status === 'created'),
+    links: getProjectBootstrapLinks(manifest),
     manifest,
+    nextSteps: getProjectBootstrapNextSteps(manifest),
     skipped: results.filter((result) => result.status === 'skipped'),
-  }
+  } satisfies ProjectBootstrapResult
 }
 
 export const listLocalProjects = async (root?: string) => {
