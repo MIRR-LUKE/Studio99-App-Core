@@ -32,6 +32,7 @@ const toIso = (unixSeconds?: number) =>
 const recordBillingRetryOperationalEvent = async ({
   billingEventId,
   detail,
+  organizationId,
   reason,
   req,
   status,
@@ -39,6 +40,7 @@ const recordBillingRetryOperationalEvent = async ({
 }: {
   billingEventId: number | string
   detail?: Record<string, unknown>
+  organizationId?: null | number | string
   reason: string
   req: PayloadRequest
   status: 'failed' | 'succeeded'
@@ -55,6 +57,7 @@ const recordBillingRetryOperationalEvent = async ({
         ...detail,
       },
       eventType: status === 'failed' ? 'webhook_failure' : 'maintenance_action',
+      organization: organizationId ?? resolveDocumentId(req.user?.currentOrganization ?? null) ?? undefined,
       reason,
       relatedCollection: 'billing-events',
       relatedId: String(billingEventId),
@@ -393,6 +396,7 @@ export const retryBillingEventByID = async ({
   const nextRetryCount = ((billingEvent as { retryCount?: number }).retryCount ?? 0) + 1
   const stripeEventId = (billingEvent as { stripeEventId?: string }).stripeEventId ?? null
   const source = (billingEvent as { source?: string }).source ?? 'stripe'
+  const organizationId = resolveDocumentId((billingEvent as { organization?: unknown }).organization ?? null)
 
   if ((billingEvent as { source?: string }).source === 'meter') {
     await api.update({
@@ -412,6 +416,7 @@ export const retryBillingEventByID = async ({
         retryCount: nextRetryCount,
         source,
       },
+      organizationId,
       reason,
       req,
       status: 'succeeded',
@@ -466,6 +471,7 @@ export const retryBillingEventByID = async ({
         source,
         stripeEventId,
       },
+      organizationId,
       reason,
       req,
       status: 'succeeded',
@@ -495,6 +501,7 @@ export const retryBillingEventByID = async ({
         source,
         stripeEventId,
       },
+      organizationId,
       reason,
       req,
       status: 'failed',

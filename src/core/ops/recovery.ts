@@ -40,6 +40,14 @@ const daysUntil = (value: Date | string | null, now = new Date()) => {
   return Math.ceil(diff / MILLISECONDS_PER_DAY)
 }
 
+const resolveEventOrganizationId = ({
+  organizationId,
+  req,
+}: {
+  organizationId?: null | number | string
+  req: PayloadRequest
+}) => organizationId ?? resolveDocumentId(req.user?.currentOrganization ?? null)
+
 export const getRecoveryPolicy = () => ({
   appRestore:
     'Payload versions restore config and singleton data. Infra backup restores Postgres, object storage, and secrets.',
@@ -77,11 +85,13 @@ const getRecordedBy = (req: PayloadRequest) => resolveDocumentId(req.user?.id ??
 const recordOperationalEvent = async ({
   detail,
   eventType,
+  organizationId,
   reason,
   req,
   summary,
 }: RecoveryEventArgs & {
   eventType: 'backup_snapshot' | 'media_restore' | 'restore_drill'
+  organizationId?: null | number | string
   summary: string
 }) => {
   const api = createSystemLocalApi(req, 'record recovery operational event')
@@ -91,6 +101,7 @@ const recordOperationalEvent = async ({
     data: {
       detail,
       eventType,
+      organization: resolveEventOrganizationId({ organizationId, req }) ?? undefined,
       reason,
       status: 'succeeded',
       summary,
@@ -253,6 +264,7 @@ export const recordBackupSnapshot = async ({
       snapshotType,
     },
     eventType: 'backup_snapshot',
+    organizationId: scopeType === 'organization' ? scopeId ?? null : null,
     reason,
     req,
     summary: 'Backup snapshot recorded',
@@ -299,6 +311,7 @@ export const recordRestoreDrill = async ({
         snapshotId: snapshot.id,
       },
       eventType: 'restore_drill',
+      organization: resolveEventOrganizationId({ req }) ?? undefined,
       reason,
       relatedCollection: 'backup-snapshots',
       relatedId: String(snapshot.id),
@@ -344,6 +357,7 @@ export const maybeRecordRestoreDrillReminder = async ({ req }: { req: PayloadReq
         scheduledAt: new Date().toISOString(),
       },
       eventType: 'maintenance_action',
+      organization: resolveEventOrganizationId({ req }) ?? undefined,
       queueName: 'maintenance',
       reason: 'nightly maintenance restore drill reminder sweep',
       relatedCollection: status.latestRestoreDrillId ? 'backup-snapshots' : undefined,
@@ -374,6 +388,7 @@ export const recordMediaRestore = async ({
         ...getRecoveryPolicy(),
       },
       eventType: 'media_restore',
+      organization: resolveEventOrganizationId({ organizationId, req }) ?? undefined,
       reason,
       status: 'succeeded',
       summary: 'Media restore recorded',
