@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { consoleCardGridStyle, consoleCardStyle, consoleHeadingStyle, consoleLinkStyle, consoleMutedStyle, consolePageStyle, consoleSectionStyle } from '@/app/(ops)/console/_lib/console'
+import { consoleProject } from '@/projects/console'
 import { loadConsoleProjectDashboard } from './_lib/dashboard'
 
 export const dynamic = 'force-dynamic'
@@ -43,6 +44,14 @@ export default async function ConsolePage() {
           {project.purpose} <code>/app/console</code> は、core の上で最初に実際に回る project として動いています。
         </p>
       </header>
+
+      <section style={consoleSectionStyle}>
+        <h2 style={consoleHeadingStyle}>app から console へ</h2>
+        <p style={consoleMutedStyle}>
+          `/app/console` は実際の app の入口で、`/console/projects/console` はその project を管理する場所です。最初の
+          本番感のある流れは、ここを起点に育てます。
+        </p>
+      </section>
 
       <section style={consoleCardGridStyle}>
         <div style={consoleCardStyle}>
@@ -92,6 +101,9 @@ export default async function ConsolePage() {
               <li>
                 console: <Link href={project.routes.consoleProject}>{project.routes.consoleProject}</Link>
               </li>
+              <li>
+                console root: <Link href="/console">/console</Link>
+              </li>
             </ul>
             <p style={{ margin: '12px 0 0', color: '#52525b' }}>{dashboard.currentOrganizationSummary}</p>
           </article>
@@ -119,12 +131,30 @@ export default async function ConsolePage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '12px' }}>
               {project.routes.adminCollections.map((href) => (
                 <Link href={href} key={href} style={consoleLinkStyle}>
-                  admin collection
+                  {href.split('/').pop()}
                 </Link>
               ))}
             </div>
           </article>
         </div>
+      </section>
+
+      <section style={consoleSectionStyle}>
+        <h2 style={consoleHeadingStyle}>今すぐ触る順番</h2>
+        <ol style={{ lineHeight: 1.8, margin: 0, paddingLeft: '20px' }}>
+          <li>
+            <Link href={project.routes.app}>{project.routes.app}</Link> でこの project の本体を開く
+          </li>
+          <li>
+            <Link href={project.routes.consoleProject}>{project.routes.consoleProject}</Link> で管理導線を確認する
+          </li>
+          <li>
+            <Link href="/admin">/admin</Link> で customers / workspaces / events を直接編集する
+          </li>
+          <li>
+            必要なら <Link href="/console/factory">/console/factory</Link> から 2 本目の project を作る
+          </li>
+        </ol>
       </section>
 
       <section style={consoleSectionStyle}>
@@ -171,8 +201,8 @@ export default async function ConsolePage() {
       <section style={consoleSectionStyle}>
         <h2 style={consoleHeadingStyle}>handoff</h2>
         <p style={consoleMutedStyle}>
-          この project は、core の auth / tenant / admin / billing / ops をそのまま使いながら、最初の実アプリとして
-          動かすための実験台です。
+          {consoleProject.name} は、core の auth / tenant / admin / billing / ops をそのまま使いながら、最初の実アプリとして
+          動かすための実験台です。`/app` で使い始めて、`/console` で管理し、`/admin` で裏側を確認します。
         </p>
       </section>
     </section>

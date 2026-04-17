@@ -1,72 +1,135 @@
 import Link from 'next/link'
 
-import { projectTemplateOptions } from '@/core/ops/bootstrap-preview'
-import { listLocalProjects } from '@/core/ops/local-projects'
+import { consoleCardGridStyle, consoleCardStyle, consoleHeadingStyle, consoleLinkStyle, consoleMutedStyle, consolePageStyle, consoleSectionStyle } from '@/app/(ops)/console/_lib/console'
+import { loadAppStarterState } from './_lib/starter'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AppPage() {
-  const projects = await listLocalProjects()
+  const starter = await loadAppStarterState()
+
+  const consoleProjectRoute = starter.consoleProject.routes.app
 
   return (
-    <main style={{ margin: '0 auto', maxWidth: '960px', padding: '56px 24px 80px' }}>
-      <section style={{ display: 'grid', gap: '24px' }}>
-        <header>
-          <p style={{ margin: '0 0 12px' }}>Studio99 Application Core</p>
-          <h1 style={{ margin: '0 0 14px' }}>この core からアプリを増やしていくための入口</h1>
-          <p style={{ lineHeight: 1.7, margin: 0 }}>
-            ここは launchpad です。project を作る、既存 project に入る、表向きの管理画面である
-            <Link href="/console">/console</Link> に移る、の3つをすぐできるようにしています。
-          </p>
-        </header>
+    <section style={consolePageStyle}>
+      <header style={consoleSectionStyle}>
+        <p style={{ margin: 0 }}>Studio99 Application Core</p>
+        <h1 style={consoleHeadingStyle}>この core から、次のアプリをそのまま始める</h1>
+        <p style={consoleMutedStyle}>
+          ここは launchpad です。`/app` では project を開き、`/console` では管理と factory を扱い、`/admin` では core
+          データを触ります。最初の一歩が散らばらないようにしています。
+        </p>
+      </header>
 
-        <section style={{ display: 'grid', gap: '10px' }}>
-          <h2 style={{ margin: 0 }}>最短ルート</h2>
-          <ol style={{ lineHeight: 1.8, margin: 0, paddingLeft: '20px' }}>
-            <li>
-              初回なら <Link href="/bootstrap/owner">/bootstrap/owner</Link> で最初の管理者を作る
-            </li>
-            <li>
-              <Link href="/console">/console</Link> で表向きの管理画面に入る
-            </li>
-            <li>
-              裏口の <Link href="/admin">/admin</Link> で core の共通データを確認する
-            </li>
-            <li>
-              必要なら内部運用として <Link href="/ops">/ops</Link> も使い、project 固有の page /
-              collection / workflow を足していく
-            </li>
-          </ol>
-        </section>
-
-        <section style={{ display: 'grid', gap: '10px' }}>
-          <h2 style={{ margin: 0 }}>いま開ける project</h2>
-          {projects.length > 0 ? (
-            <ul style={{ lineHeight: 1.8, margin: 0, paddingLeft: '20px' }}>
-              {projects.map((project) => (
-                <li key={project.key}>
-                  <Link href={project.route}>{project.key}</Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p style={{ margin: 0 }}>
-              まだ project はありません。`/console` から最初の 1 本を作る流れにしていきます。
-            </p>
-          )}
-        </section>
-
-        <section style={{ display: 'grid', gap: '10px' }}>
-          <h2 style={{ margin: 0 }}>用意してあるテンプレート</h2>
-          <ul style={{ lineHeight: 1.8, margin: 0, paddingLeft: '20px' }}>
-            {projectTemplateOptions.map((template) => (
-              <li key={template.value}>
-                <strong>{template.label}</strong>: {template.description}
-              </li>
-            ))}
-          </ul>
-        </section>
+      <section style={consoleCardGridStyle}>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>next action</p>
+          <strong>/app/console を開く</strong>
+        </div>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>management</p>
+          <strong>/console</strong>
+        </div>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>core data</p>
+          <strong>/admin</strong>
+        </div>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>project factory</p>
+          <strong>/console/factory</strong>
+        </div>
       </section>
-    </main>
+
+      <section style={consoleSectionStyle}>
+        <h2 style={consoleHeadingStyle}>最短ルート</h2>
+        <ol style={{ lineHeight: 1.8, margin: 0, paddingLeft: '20px' }}>
+          {starter.nextActions.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      </section>
+
+      <section style={consoleSectionStyle}>
+        <h2 style={consoleHeadingStyle}>最初に開く project</h2>
+        <article style={consoleCardStyle}>
+          <p style={{ margin: '0 0 8px' }}>
+            <strong>{starter.consoleProject.name}</strong>
+          </p>
+          <p style={consoleMutedStyle}>
+            {starter.consoleProject.purpose}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '12px' }}>
+            <Link href={consoleProjectRoute} style={consoleLinkStyle}>
+              /app/console
+            </Link>
+            <Link href={starter.consoleProject.routes.consoleProject} style={consoleLinkStyle}>
+              /console/projects/console
+            </Link>
+            <Link href={starter.consoleProject.routes.api} style={consoleLinkStyle}>
+              /api/console
+            </Link>
+          </div>
+        </article>
+      </section>
+
+      <section style={consoleSectionStyle}>
+        <h2 style={consoleHeadingStyle}>console project の中身</h2>
+        <div style={consoleCardGridStyle}>
+          {starter.consoleProjectCollections.map((collection) => (
+            <div key={collection.slug} style={consoleCardStyle}>
+              <p style={{ margin: '0 0 6px' }}>{collection.label}</p>
+              <strong>{collection.slug}</strong>
+              <p style={consoleMutedStyle}>{collection.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section style={consoleSectionStyle}>
+        <h2 style={consoleHeadingStyle}>いま開ける project</h2>
+        {starter.localProjects.length > 0 ? (
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {starter.localProjects.map((project) => (
+              <article key={project.key} style={consoleCardStyle}>
+                <p style={{ margin: '0 0 8px' }}>
+                  <strong>
+                    <Link href={project.route}>{project.key}</Link>
+                  </strong>
+                </p>
+                <p style={consoleMutedStyle}>{project.docsPath}</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                  <Link href={project.route} style={consoleLinkStyle}>
+                    open app
+                  </Link>
+                  <Link href={`/console/projects/${project.key}`} style={consoleLinkStyle}>
+                    open console
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p style={consoleMutedStyle}>
+            まだ project はありません。`/console/factory` から console project を作ると流れが掴みやすいです。
+          </p>
+        )}
+      </section>
+
+      <section style={consoleSectionStyle}>
+        <h2 style={consoleHeadingStyle}>次の導線</h2>
+        <div style={{ display: 'grid', gap: '12px' }}>
+          {starter.routeMap.map((item) => (
+            <article key={item.href} style={consoleCardStyle}>
+              <p style={{ margin: '0 0 6px' }}>
+                <Link href={item.href} style={consoleLinkStyle}>
+                  {item.label}
+                </Link>
+              </p>
+              <p style={consoleMutedStyle}>{item.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </section>
   )
 }
