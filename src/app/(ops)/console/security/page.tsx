@@ -1,9 +1,11 @@
 import Link from 'next/link'
 
 import { env } from '@/lib/env'
+import { getSecurityContentSecurityPolicy, getSecurityPolicyMode } from '@/core/security'
 
 import {
   canViewConsole,
+  consoleCodeStyle,
   consoleCardGridStyle,
   consoleCardStyle,
   consoleHeadingStyle,
@@ -34,6 +36,7 @@ export default async function ConsoleSecurityPage() {
   }
 
   const api = getConsoleApi(req, 'read console security page')
+  const csp = getSecurityContentSecurityPolicy()
   const [auditLogs, failedOperationalEvents] = await Promise.all([
     api.find({
       collection: 'audit-logs',
@@ -74,6 +77,14 @@ export default async function ConsoleSecurityPage() {
           <strong>{env.auth.cookieSameSite}</strong>
         </div>
         <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>policy mode</p>
+          <strong>{getSecurityPolicyMode()}</strong>
+        </div>
+        <div style={consoleCardStyle}>
+          <p style={{ margin: '0 0 6px' }}>rate limit store</p>
+          <strong>{env.security.rateLimitStore}</strong>
+        </div>
+        <div style={consoleCardStyle}>
           <p style={{ margin: '0 0 6px' }}>audit logs</p>
           <strong>{formatCount(auditLogs.totalDocs)}</strong>
         </div>
@@ -83,9 +94,16 @@ export default async function ConsoleSecurityPage() {
         <ul style={{ lineHeight: 1.8, margin: 0, paddingLeft: '20px' }}>
           <li>same-origin mutation guard は state-changing route に入れる方針</li>
           <li>authenticated response は no-store を基本にする方針</li>
-          <li>rate limit は今後 shared store 化する前提</li>
+          <li>rate limit store: {env.security.rateLimitStore}</li>
+          <li>additional CORS origins: {env.security.corsAllowlist || '—'}</li>
           <li>failed operational events: {formatCount(failedOperationalEvents.totalDocs)}</li>
         </ul>
+      </section>
+
+      <section style={consoleSectionStyle}>
+        <p style={consoleMutedStyle}>
+          current CSP: <span style={consoleCodeStyle}>{csp}</span>
+        </p>
       </section>
 
       <section style={consoleSectionStyle}>

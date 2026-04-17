@@ -2,6 +2,7 @@ import { tenantField } from '@payloadcms/plugin-multi-tenant/fields'
 import type { CollectionConfig } from 'payload'
 
 import {
+  canAccessOps,
   mediaCreateAccess,
   mediaDeleteAccess,
   mediaReadAccess,
@@ -58,6 +59,9 @@ export const Media: CollectionConfig = {
     {
       name: 'objectKey',
       type: 'text',
+      access: {
+        read: ({ req }) => canAccessOps({ req }),
+      },
       admin: {
         readOnly: true,
       },
@@ -65,6 +69,9 @@ export const Media: CollectionConfig = {
     {
       name: 'deliveryUrl',
       type: 'text',
+      access: {
+        read: ({ req }) => canAccessOps({ req }),
+      },
       admin: {
         readOnly: true,
       },

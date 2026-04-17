@@ -2,7 +2,7 @@ import { tenantField } from '@payloadcms/plugin-multi-tenant/fields'
 import type { CollectionConfig } from 'payload'
 
 import { hideFromNonPlatformReaders } from '../access/admin'
-import { platformManageAccess, platformReadAccess } from '../access'
+import { canAccessOps, platformManageAccess, platformReadAccess } from '../access'
 import {
   createCollectionAuditAfterChange,
   createCollectionAuditAfterDelete,
@@ -94,10 +94,16 @@ export const BillingEvents: CollectionConfig = {
     {
       name: 'rawPayload',
       type: 'json',
+      access: {
+        read: ({ req }) => canAccessOps({ req }),
+      },
     },
     {
       name: 'errorJson',
       type: 'json',
+      access: {
+        read: ({ req }) => canAccessOps({ req }),
+      },
     },
   ],
 }

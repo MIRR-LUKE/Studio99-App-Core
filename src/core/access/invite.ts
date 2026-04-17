@@ -3,52 +3,15 @@ import type { Access, AccessArgs, Where } from 'payload'
 import type { Invite } from '../../../payload-types'
 import { canProvisionOrganizationSeat, resolveManagedOrganizationId } from './billing'
 import { createSystemLocalApi } from '../server/localApi'
-import { compactDocumentIds, resolveDocumentId } from '../utils/ids'
+import { resolveDocumentId } from '../utils/ids'
 import { canManageOrganizationMembership } from './organization'
 import { canManagePlatform, canReadPlatform } from './platform'
+import { getAccessibleOrganizationIds } from './scope'
 
 type InviteDoc = Pick<Invite, 'email' | 'id' | 'organization' | 'status'>
 
 const getSystemApi = (req: AccessArgs['req']) =>
   createSystemLocalApi(req, 'resolve invite access scope')
-
-const getAccessibleOrganizationIds = async (req: AccessArgs['req']) => {
-  if (canReadPlatform({ req })) {
-    return []
-  }
-
-  const userId = resolveDocumentId(req.user?.id)
-  if (userId === null) {
-    return []
-  }
-
-  const api = getSystemApi(req)
-  const memberships = await api.find({
-    collection: 'memberships',
-    depth: 0,
-    limit: 1000,
-    where: {
-      and: [
-        {
-          user: {
-            equals: userId,
-          },
-        },
-        {
-          status: {
-            equals: 'active',
-          },
-        },
-      ],
-    },
-  })
-
-  return compactDocumentIds(
-    (memberships.docs as Array<{ organization?: InviteDoc['organization'] }>).map((membership) =>
-      membership.organization ?? null,
-    ),
-  )
-}
 
 const getInviteByID = async (req: AccessArgs['req'], id: number | string) => {
   const api = getSystemApi(req)

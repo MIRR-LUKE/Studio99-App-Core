@@ -29,3 +29,5 @@ Local API は wrapper 経由で使い、guard rails を設ける。
 - `src/core/server` に共通 wrapper を置く
 - app の通常機能では bypass を使わない
 - 破壊的操作は ops route と audit を通す
+- organization scope の membership lookup は request 単位でまとめ、access helper が重複クエリを増やさない
+- system access には internal context を付け、reason が空の call site を止める

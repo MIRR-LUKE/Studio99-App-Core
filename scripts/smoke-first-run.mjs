@@ -4,6 +4,8 @@ import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
+import { runSecurityRouteAudit } from './security-route-audit.mjs'
+
 const DEFAULT_BASE_URL = 'http://127.0.0.1:3000'
 const DEFAULT_HOST = '0.0.0.0'
 const DEFAULT_PORT = 3000
@@ -298,6 +300,14 @@ const assert = (condition, message) => {
   }
 }
 
+const assertHeaderContains = (response, headerName, expectedValue, message) => {
+  const actualValue = response.headers.get(headerName)
+  assert(
+    actualValue && actualValue.toLowerCase().includes(expectedValue.toLowerCase()),
+    `${message} (got: ${actualValue ?? 'missing'})`,
+  )
+}
+
 const assertPage = async (pathname, expectations) => {
   const response = await fetchWithTimeout(`${options.baseUrl}${pathname}`, {
     headers: {
@@ -367,17 +377,16 @@ const assertRouteReachable = async (pathname, expectations = {}) => {
   return response
 }
 
-const getCookieHeader = (response) => {
-  const headerValues =
-    typeof response.headers.getSetCookie === 'function'
-      ? response.headers.getSetCookie()
-      : [response.headers.get('set-cookie')].filter(Boolean)
+const getSetCookieHeaders = (response) =>
+  typeof response.headers.getSetCookie === 'function'
+    ? response.headers.getSetCookie()
+    : [response.headers.get('set-cookie')].filter(Boolean)
 
-  return headerValues
+const getCookieHeader = (response) =>
+  getSetCookieHeaders(response)
     .map((value) => value.split(';')[0]?.trim())
     .filter(Boolean)
     .join('; ')
-}
 
 const bootstrapOwner = async () => {
   if (!bootstrapToken) {
@@ -452,6 +461,26 @@ const loginOwner = async (credentials) => {
   const cookieHeader = getCookieHeader(response)
   assert(cookieHeader.length > 0, '/api/users/login did not return a session cookie.')
 
+  const setCookieHeaders = getSetCookieHeaders(response)
+  assert(
+    setCookieHeaders.every((value) => /httponly/i.test(value)),
+    '/api/users/login did not mark the session cookie HttpOnly.',
+  )
+  assert(
+    setCookieHeaders.every((value) => /path=\//i.test(value)),
+    '/api/users/login did not scope the session cookie to path=/.',
+  )
+  assert(
+    setCookieHeaders.every((value) => /samesite=/i.test(value)),
+    '/api/users/login did not set SameSite on the session cookie.',
+  )
+  if (process.env.AUTH_COOKIE_SECURE === 'true' || origin.startsWith('https://')) {
+    assert(
+      setCookieHeaders.every((value) => /secure/i.test(value)),
+      '/api/users/login did not mark the session cookie Secure.',
+    )
+  }
+
   return cookieHeader
 }
 
@@ -471,6 +500,13 @@ const assertBootstrapStatus = async () => {
   const payload = await readJson(response)
   assert(typeof payload.enabled === 'boolean', '/api/bootstrap/platform-owner did not return enabled.')
   assert(typeof payload.ready === 'boolean', '/api/bootstrap/platform-owner did not return ready.')
+  assertHeaderContains(response, 'cache-control', 'no-store', '/api/bootstrap/platform-owner should be no-store.')
+  assertHeaderContains(
+    response,
+    'content-security-policy',
+    "default-src 'self'",
+    '/api/bootstrap/platform-owner should include security headers.',
+  )
 }
 
 const waitForReady = async () => {
@@ -556,6 +592,9 @@ const waitForReady = async () => {
 }
 
 const run = async () => {
+  await runSecurityRouteAudit()
+  log('[ok] security route audit')
+
   if (!options.noStart) {
     log(`[info] starting server on ${options.baseUrl} ...`)
     await startServer()
@@ -695,16 +734,17 @@ const run = async () => {
   })
   log('[ok] /api/users/logout')
 
-  await assertRouteReachable('/api/core/invites', {
+  const invitesResponse = await assertRouteReachable('/api/core/invites', {
     headers: sessionCookie
       ? {
           cookie: sessionCookie,
         }
       : undefined,
   })
+  assertHeaderContains(invitesResponse, 'cache-control', 'no-store', '/api/core/invites should be no-store.')
   log('[ok] /api/core/invites')
 
-  await assertRouteReachable('/api/core/invites/accept', {
+  const inviteAcceptResponse = await assertRouteReachable('/api/core/invites/accept', {
     body: JSON.stringify({
       token: 'smoke-invalid-token',
     }),
@@ -715,6 +755,12 @@ const run = async () => {
       : undefined,
     method: 'POST',
   })
+  assertHeaderContains(
+    inviteAcceptResponse,
+    'cache-control',
+    'no-store',
+    '/api/core/invites/accept should be no-store.',
+  )
   log('[ok] /api/core/invites/accept')
 
   await assertApi('/api/health', (payload) => {

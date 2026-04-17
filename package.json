@@ -26,6 +26,7 @@
     "lint:fix": "eslint . --fix",
     "generate:types": "payload generate:types",
     "generate:importmap": "payload generate:importmap",
+    "security:audit-routes": "node scripts/security-route-audit.mjs",
     "payload": "payload"
   },
   "dependencies": {

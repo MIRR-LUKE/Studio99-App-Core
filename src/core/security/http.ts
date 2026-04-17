@@ -2,22 +2,27 @@ import { NextResponse } from 'next/server'
 
 import { env } from '@/lib/env'
 
-const BASE_CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "object-src 'none'",
-  "img-src 'self' data: blob: https:",
-  "media-src 'self' data: blob: https:",
-  "font-src 'self' data: https:",
-  "style-src 'self' 'unsafe-inline' https:",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
-  "connect-src 'self' https: http: ws: wss:",
-].join('; ')
+const isProduction = env.NODE_ENV === 'production'
 
-const BASE_SECURITY_HEADERS: Record<string, string> = {
-  'content-security-policy': BASE_CONTENT_SECURITY_POLICY,
+const getContentSecurityPolicy = () =>
+  [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' data: blob: https:",
+    "font-src 'self' data: https:",
+    "style-src 'self' 'unsafe-inline' https:",
+    isProduction
+      ? "script-src 'self' 'unsafe-inline' https:"
+      : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+    isProduction ? "connect-src 'self' https: wss:" : "connect-src 'self' https: http: ws: wss:",
+  ].join('; ')
+
+const getSecurityHeaders = (): Record<string, string> => ({
+  'content-security-policy': getContentSecurityPolicy(),
   'cross-origin-opener-policy': 'same-origin',
   'cross-origin-resource-policy': 'same-site',
   'origin-agent-cluster': '?1',
@@ -26,7 +31,7 @@ const BASE_SECURITY_HEADERS: Record<string, string> = {
   'x-content-type-options': 'nosniff',
   'x-frame-options': 'DENY',
   'x-permitted-cross-domain-policies': 'none',
-}
+})
 
 const apiOrigin = new URL(env.NEXT_PUBLIC_SERVER_URL).origin
 
@@ -44,6 +49,10 @@ export const getAllowedOrigins = () => allowedOrigins
 
 export const isAllowedOrigin = (origin?: string | null) =>
   typeof origin === 'string' && origin.length > 0 && allowedOrigins.includes(origin)
+
+export const getSecurityPolicyMode = () => (isProduction ? 'production' : 'development')
+
+export const getSecurityContentSecurityPolicy = () => getContentSecurityPolicy()
 
 export const getRequestOrigin = (request: Request) => {
   const origin = request.headers.get('origin')?.trim()
@@ -83,7 +92,7 @@ export const applySecurityHeaders = (
     exposeHeaders?: string[]
   },
 ) => {
-  Object.entries(BASE_SECURITY_HEADERS).forEach(([key, value]) => {
+  Object.entries(getSecurityHeaders()).forEach(([key, value]) => {
     response.headers.set(key, value)
   })
 
@@ -104,6 +113,15 @@ export const applySecurityHeaders = (
     response.headers.set('access-control-allow-origin', origin)
     response.headers.set('access-control-allow-credentials', 'true')
     response.headers.set('vary', mergeVary(response.headers.get('vary'), 'Origin'))
+    if (request && request.method === 'OPTIONS') {
+      response.headers.set(
+        'vary',
+        mergeVary(
+          response.headers.get('vary'),
+          'Access-Control-Request-Method, Access-Control-Request-Headers',
+        ),
+      )
+    }
     response.headers.set('access-control-allow-methods', 'GET, HEAD, POST, OPTIONS')
     response.headers.set(
       'access-control-allow-headers',

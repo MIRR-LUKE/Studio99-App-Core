@@ -26,6 +26,14 @@ const assertAuthenticatedUser = (req: PayloadRequest) => {
   }
 }
 
+const normalizeReason = (reason: string) => reason.trim()
+
+const buildInternalContext = (argsContext: Record<string, unknown> | undefined, reason: string) => ({
+  ...((argsContext ?? {}) as Record<string, unknown>),
+  studio99InternalAccess: true,
+  studio99InternalReason: reason,
+})
+
 const stripUnsafeLocalApiArgs = <TArgs extends LocalApiArgs>(args: TArgs) => {
   const { depth, overrideAccess: _overrideAccess, req: _req, user: _user, ...rest } = args
   return {
@@ -37,7 +45,9 @@ const stripUnsafeLocalApiArgs = <TArgs extends LocalApiArgs>(args: TArgs) => {
 const buildLocalApi = (req: PayloadRequest, options: LocalApiOptions) => {
   assertRequestHasPayload(req)
 
-  if (options.overrideAccess && !options.reason) {
+  const normalizedReason = options.reason ? normalizeReason(options.reason) : ''
+
+  if (options.overrideAccess && normalizedReason.length === 0) {
     throw new Error('System Local API access requires a reason so the call site stays explicit.')
   }
 
@@ -48,12 +58,7 @@ const buildLocalApi = (req: PayloadRequest, options: LocalApiOptions) => {
       const { depth, rest } = stripUnsafeLocalApiArgs(args)
       return (req.payload.create as any)({
         ...(rest as object),
-        context: options.overrideAccess
-          ? {
-              ...((args.context ?? {}) as Record<string, unknown>),
-              studio99InternalReason: options.reason,
-            }
-          : args.context,
+        context: options.overrideAccess ? buildInternalContext(args.context, normalizedReason) : args.context,
         depth: depth ?? defaultDepth,
         overrideAccess: Boolean(options.overrideAccess),
         req,
@@ -64,12 +69,7 @@ const buildLocalApi = (req: PayloadRequest, options: LocalApiOptions) => {
       const { rest } = stripUnsafeLocalApiArgs(args)
       return (req.payload.delete as any)({
         ...(rest as object),
-        context: options.overrideAccess
-          ? {
-              ...((args.context ?? {}) as Record<string, unknown>),
-              studio99InternalReason: options.reason,
-            }
-          : args.context,
+        context: options.overrideAccess ? buildInternalContext(args.context, normalizedReason) : args.context,
         overrideAccess: Boolean(options.overrideAccess),
         req,
         user: options.overrideAccess ? undefined : req.user,
@@ -79,12 +79,7 @@ const buildLocalApi = (req: PayloadRequest, options: LocalApiOptions) => {
       const { depth, rest } = stripUnsafeLocalApiArgs(args)
       return (req.payload.find as any)({
         ...(rest as object),
-        context: options.overrideAccess
-          ? {
-              ...((args.context ?? {}) as Record<string, unknown>),
-              studio99InternalReason: options.reason,
-            }
-          : args.context,
+        context: options.overrideAccess ? buildInternalContext(args.context, normalizedReason) : args.context,
         depth: depth ?? defaultDepth,
         overrideAccess: Boolean(options.overrideAccess),
         req,
@@ -95,12 +90,7 @@ const buildLocalApi = (req: PayloadRequest, options: LocalApiOptions) => {
       const { depth, rest } = stripUnsafeLocalApiArgs(args)
       return (req.payload.findByID as any)({
         ...(rest as object),
-        context: options.overrideAccess
-          ? {
-              ...((args.context ?? {}) as Record<string, unknown>),
-              studio99InternalReason: options.reason,
-            }
-          : args.context,
+        context: options.overrideAccess ? buildInternalContext(args.context, normalizedReason) : args.context,
         depth: depth ?? defaultDepth,
         overrideAccess: Boolean(options.overrideAccess),
         req,
@@ -111,12 +101,7 @@ const buildLocalApi = (req: PayloadRequest, options: LocalApiOptions) => {
       const { depth, rest } = stripUnsafeLocalApiArgs(args)
       return (req.payload.findGlobal as any)({
         ...(rest as object),
-        context: options.overrideAccess
-          ? {
-              ...((args.context ?? {}) as Record<string, unknown>),
-              studio99InternalReason: options.reason,
-            }
-          : args.context,
+        context: options.overrideAccess ? buildInternalContext(args.context, normalizedReason) : args.context,
         depth: depth ?? defaultDepth,
         overrideAccess: Boolean(options.overrideAccess),
         req,
@@ -127,12 +112,7 @@ const buildLocalApi = (req: PayloadRequest, options: LocalApiOptions) => {
       const { depth, rest } = stripUnsafeLocalApiArgs(args)
       return (req.payload.update as any)({
         ...(rest as object),
-        context: options.overrideAccess
-          ? {
-              ...((args.context ?? {}) as Record<string, unknown>),
-              studio99InternalReason: options.reason,
-            }
-          : args.context,
+        context: options.overrideAccess ? buildInternalContext(args.context, normalizedReason) : args.context,
         depth: depth ?? defaultDepth,
         overrideAccess: Boolean(options.overrideAccess),
         req,
@@ -143,12 +123,7 @@ const buildLocalApi = (req: PayloadRequest, options: LocalApiOptions) => {
       const { depth, rest } = stripUnsafeLocalApiArgs(args)
       return (req.payload.updateGlobal as any)({
         ...(rest as object),
-        context: options.overrideAccess
-          ? {
-              ...((args.context ?? {}) as Record<string, unknown>),
-              studio99InternalReason: options.reason,
-            }
-          : args.context,
+        context: options.overrideAccess ? buildInternalContext(args.context, normalizedReason) : args.context,
         depth: depth ?? defaultDepth,
         overrideAccess: Boolean(options.overrideAccess),
         req,

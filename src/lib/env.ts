@@ -6,6 +6,8 @@ const storageProviders = ['local', 's3'] as const
 type StorageProvider = (typeof storageProviders)[number]
 const authCookieSameSiteValues = ['Lax', 'None', 'Strict'] as const
 type AuthCookieSameSite = (typeof authCookieSameSiteValues)[number]
+const rateLimitStoreValues = ['memory'] as const
+type RateLimitStore = (typeof rateLimitStoreValues)[number]
 const billingStates = [
   'none',
   'trialing',
@@ -104,6 +106,11 @@ const authCookieSameSite = enumEnv<AuthCookieSameSite>(
   authCookieSameSiteValues,
   'Lax',
 )
+const rateLimitStore = enumEnv<RateLimitStore>(
+  'SECURITY_RATE_LIMIT_STORE',
+  rateLimitStoreValues,
+  'memory',
+)
 
 export const env = {
   DATABASE_URL: requireEnv('DATABASE_URL'),
@@ -170,6 +177,9 @@ export const env = {
   },
   security: {
     corsAllowlist: optionalEnv('SECURITY_CORS_ALLOWLIST', ''),
+    rateLimitStore,
+    rateLimitStoreToken: optionalEnv('SECURITY_RATE_LIMIT_STORE_TOKEN'),
+    rateLimitStoreUrl: optionalEnv('SECURITY_RATE_LIMIT_STORE_URL'),
   },
   observability: {
     logLevel: optionalEnv('LOG_LEVEL', 'info'),

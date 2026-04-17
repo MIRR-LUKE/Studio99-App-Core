@@ -25,6 +25,10 @@ Core に入れるものは、プロダクトの種類が変わっても毎回必
 - audit / operational events
 - restore / backup metadata
 
+access と Local API の実装は、この責務境界を守るための土台です。  
+`src/core/access/scope.ts` では organization membership の可視性を request 単位でまとめ、同じ request の中で membership を何度も引き直さないようにします。  
+`src/core/server/localApi.ts` では scoped access と system access を分け、system access には reason と internal context を付けます。
+
 ### Project
 
 Project に入れるものは、その事業や画面に固有のものです。

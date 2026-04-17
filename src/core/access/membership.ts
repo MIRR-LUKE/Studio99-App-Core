@@ -4,8 +4,9 @@ import type { Membership } from '../../../payload-types'
 import { canProvisionOrganizationSeat, resolveManagedOrganizationId } from './billing'
 import { createSystemLocalApi } from '../server/localApi'
 import { canManagePlatform, canReadPlatform } from './platform'
-import { compactDocumentIds, resolveDocumentId } from '../utils/ids'
-import { hasOrganizationRoleAtLeast } from '../utils/roles'
+import { resolveDocumentId } from '../utils/ids'
+import { getManagedOrganizationIds } from './scope'
+import { canManageOrganizationMembership } from './organization'
 
 type MembershipDoc = Pick<Membership, 'id' | 'organization' | 'role' | 'status' | 'user'>
 
@@ -13,58 +14,6 @@ const getUserId = (req: AccessArgs['req']) => resolveDocumentId(req.user?.id)
 
 const getSystemApi = (req: AccessArgs['req']) =>
   createSystemLocalApi(req, 'resolve membership access scope')
-
-const getUserMemberships = async (req: AccessArgs['req']) => {
-  const userId = getUserId(req)
-  if (userId === null) {
-    return []
-  }
-
-  const api = getSystemApi(req)
-  const result = await api.find({
-    collection: 'memberships',
-    depth: 0,
-    limit: 1000,
-    where: {
-      and: [
-        {
-          user: {
-            equals: userId,
-          },
-        },
-        {
-          status: {
-            equals: 'active',
-          },
-        },
-      ],
-    },
-  })
-
-  return result.docs as MembershipDoc[]
-}
-
-const getManagedOrganizationIds = async (req: AccessArgs['req']) => {
-  if (canManagePlatform({ req })) {
-    return []
-  }
-
-  const memberships = await getUserMemberships(req)
-  return compactDocumentIds(
-    memberships
-      .filter((membership) => hasOrganizationRoleAtLeast(membership.role, 'org_admin'))
-      .map((membership) => membership.organization),
-  )
-}
-
-const canManageOrganizationMembership = async (req: AccessArgs['req'], organizationId: number | string) => {
-  if (canManagePlatform({ req })) {
-    return true
-  }
-
-  const managedOrganizationIds = await getManagedOrganizationIds(req)
-  return managedOrganizationIds.map(String).includes(String(organizationId))
-}
 
 export const membershipReadAccess: Access = async ({ req }) => {
   if (canReadPlatform({ req })) {

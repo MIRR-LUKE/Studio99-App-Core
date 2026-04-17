@@ -28,3 +28,6 @@
 - tenant role は `/app` のデータと organization-scoped operation を開く
 - 同じ user が両方の role family を持つことはできるが、判定は分離する
 - collection access と admin visibility は同じ role helper を使い、UI と API をずらさない
+- organization の read / manage 判定は `src/core/access/scope.ts` の scoped helper を通し、membership の取り直しを各 collection に散らさない
+- Local API は通常処理で `createScopedLocalApi`、明示的な内部処理で `createSystemLocalApi` を使い分ける
+- `createSystemLocalApi` は reason 必須で、internal context を付けて audit しやすくする

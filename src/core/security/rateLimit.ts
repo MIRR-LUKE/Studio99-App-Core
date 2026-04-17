@@ -27,20 +27,49 @@ const getStore = () => {
   return globalThis.__studio99RateLimitStore
 }
 
+const isIpv4 = (value: string) =>
+  /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(value)
+
+const isIpv6 = (value: string) => value.includes(':') && /^[0-9a-f:]+$/i.test(value)
+
+const normalizeIp = (value: string | null) => {
+  if (!value) {
+    return null
+  }
+
+  const candidate = value.trim()
+  return isIpv4(candidate) || isIpv6(candidate) ? candidate : null
+}
+
+const normalizeForwardedFor = (value: string | null) => {
+  if (!value) {
+    return null
+  }
+
+  for (const candidate of value.split(',')) {
+    const normalized = normalizeIp(candidate)
+    if (normalized) {
+      return normalized
+    }
+  }
+
+  return null
+}
+
 const getClientIdentity = (request: Request) => {
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0]?.trim() || 'unknown-forwarded-for'
-  }
-
-  const cfConnectingIp = request.headers.get('cf-connecting-ip')
+  const cfConnectingIp = normalizeIp(request.headers.get('cf-connecting-ip'))
   if (cfConnectingIp) {
-    return cfConnectingIp.trim()
+    return `cf:${cfConnectingIp}`
   }
 
-  const xRealIp = request.headers.get('x-real-ip')
+  const xRealIp = normalizeIp(request.headers.get('x-real-ip'))
   if (xRealIp) {
-    return xRealIp.trim()
+    return `x-real:${xRealIp}`
+  }
+
+  const forwardedFor = normalizeForwardedFor(request.headers.get('x-forwarded-for'))
+  if (forwardedFor) {
+    return `forwarded:${forwardedFor}`
   }
 
   return 'unknown-ip'

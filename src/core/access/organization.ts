@@ -1,55 +1,13 @@
 import type { Access, AccessArgs, Where } from 'payload'
 
-import type { Membership, Organization } from '../../../payload-types'
+import type { Organization } from '../../../payload-types'
 import { createSystemLocalApi } from '../server/localApi'
 import { canManagePlatform, canReadPlatform } from './platform'
-import { compactDocumentIds, documentIdKey, resolveDocumentId } from '../utils/ids'
-import { hasOrganizationRoleAtLeast } from '../utils/roles'
-
-type OrganizationMembershipDoc = Pick<Membership, 'organization' | 'role' | 'status' | 'user'>
-
-const isActiveMembership = (membership: OrganizationMembershipDoc) => membership.status === 'active'
-
-const getUserId = (req: AccessArgs['req']) => resolveDocumentId(req.user?.id)
+import { documentIdKey, resolveDocumentId } from '../utils/ids'
+import { getAccessibleOrganizationIds, getManagedOrganizationIds } from './scope'
 
 const getSystemApi = (req: AccessArgs['req']) =>
   createSystemLocalApi(req, 'resolve organization access scope')
-
-const getAccessibleOrganizationIds = async (req: AccessArgs['req']) => {
-  if (canReadPlatform({ req })) {
-    return []
-  }
-
-  const userId = getUserId(req)
-  if (userId === null) {
-    return []
-  }
-
-  const api = getSystemApi(req)
-  const memberships = await api.find({
-    collection: 'memberships',
-    depth: 0,
-    limit: 1000,
-    where: {
-      and: [
-        {
-          user: {
-            equals: userId,
-          },
-        },
-        {
-          status: {
-            equals: 'active',
-          },
-        },
-      ],
-    },
-  })
-
-  return compactDocumentIds(
-    (memberships.docs as OrganizationMembershipDoc[]).map((membership) => membership.organization),
-  )
-}
 
 const getOrganizationByID = async (req: AccessArgs['req'], id: number | string) => {
   const api = getSystemApi(req)
@@ -64,7 +22,7 @@ const getOrganizationByID = async (req: AccessArgs['req'], id: number | string) 
 
 const isOrganizationOwner = async (req: AccessArgs['req'], organizationId: number | string) => {
   const organization = await getOrganizationByID(req, organizationId)
-  const userId = getUserId(req)
+  const userId = resolveDocumentId(req.user?.id)
 
   if (!organization || userId === null) {
     return false
@@ -82,40 +40,8 @@ const userCanManageOrganization = async (req: AccessArgs['req'], organizationId:
     return true
   }
 
-  const userId = getUserId(req)
-  if (userId === null) {
-    return false
-  }
-
-  const api = getSystemApi(req)
-  const memberships = await api.find({
-    collection: 'memberships',
-    depth: 0,
-    limit: 1000,
-    where: {
-      and: [
-        {
-          user: {
-            equals: userId,
-          },
-        },
-        {
-          organization: {
-            equals: organizationId,
-          },
-        },
-        {
-          status: {
-            equals: 'active',
-          },
-        },
-      ],
-    },
-  })
-
-  return (memberships.docs as OrganizationMembershipDoc[]).some((membership) =>
-    hasOrganizationRoleAtLeast(membership.role, 'org_admin') && isActiveMembership(membership),
-  )
+  const managedOrganizationIds = await getManagedOrganizationIds(req)
+  return managedOrganizationIds.map(String).includes(String(organizationId))
 }
 
 export const organizationReadAccess: Access = async ({ req }) => {
