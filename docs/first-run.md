@@ -124,5 +124,8 @@ repo には `console` project も同梱しています。
 
 - [docs/how-to-use.md](./how-to-use.md)
 - [docs/bootstrap.md](./bootstrap.md)
+- [docs/postgres-supabase.md](./postgres-supabase.md)
+- [docs/production-env.md](./production-env.md)
+- [docs/deploy-runbook.md](./deploy-runbook.md)
 - [docs/ops.md](./ops.md)
 - [docs/smoke-checks.md](./smoke-checks.md)

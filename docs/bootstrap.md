@@ -118,3 +118,9 @@ body:
 
 見本として `example` project が入っています。
 まずは `src/projects/example` と `/app/example` を見てください。
+
+本番で Supabase / Postgres / deploy の流れを固めるなら、次も一緒に読むと迷いにくいです。
+
+- [docs/postgres-supabase.md](./postgres-supabase.md)
+- [docs/production-env.md](./production-env.md)
+- [docs/deploy-runbook.md](./deploy-runbook.md)

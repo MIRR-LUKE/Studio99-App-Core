@@ -208,4 +208,7 @@ npm run db:migrate
 
 - [docs/first-run.md](./first-run.md)
 - [docs/bootstrap.md](./bootstrap.md)
+- [docs/postgres-supabase.md](./postgres-supabase.md)
+- [docs/production-env.md](./production-env.md)
+- [docs/deploy-runbook.md](./deploy-runbook.md)
 - [docs/ops.md](./ops.md)
