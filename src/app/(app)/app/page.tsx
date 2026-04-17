@@ -1,12 +1,30 @@
 import Link from 'next/link'
 
+import { RuntimeFallbackPage } from '@/app/_components/runtime-fallback'
 import { consoleCardGridStyle, consoleCardStyle, consoleHeadingStyle, consoleLinkStyle, consoleMutedStyle, consolePageStyle, consoleSectionStyle } from '@/app/(ops)/console/_lib/console'
 import { loadAppStarterState } from './_lib/starter'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AppPage() {
-  const starter = await loadAppStarterState()
+  let starter: Awaited<ReturnType<typeof loadAppStarterState>>
+
+  try {
+    starter = await loadAppStarterState()
+  } catch (error) {
+    return (
+      <RuntimeFallbackPage
+        actions={[
+          { href: '/app/example', label: '/app/example' },
+          { href: '/bootstrap/owner', label: '/bootstrap/owner' },
+          { href: '/console', label: '/console' },
+        ]}
+        detail={error instanceof Error ? error.message : 'unknown app launcher error'}
+        message="`/app` の launchpad は local project と core state をまとめて読むので、依存先が落ちていると空振りします。まずは demo と bootstrap から戻れるようにしています。"
+        title="/app の launchpad をまだ読めません"
+      />
+    )
+  }
 
   const consoleProjectRoute = starter.consoleProject.routes.app
 

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { RuntimeFallbackPage } from '@/app/_components/runtime-fallback'
 import {
   consoleCardGridStyle,
   consoleCardStyle,
@@ -17,7 +18,25 @@ import { MfaPanel } from './_components/mfa-panel'
 export const dynamic = 'force-dynamic'
 
 export default async function AppSecurityPage() {
-  const { req } = await createAuthenticatedServerComponentRequest('/app/security')
+  let req: Awaited<ReturnType<typeof createAuthenticatedServerComponentRequest>>['req']
+
+  try {
+    const request = await createAuthenticatedServerComponentRequest('/app/security')
+    req = request.req
+  } catch (error) {
+    return (
+      <RuntimeFallbackPage
+        actions={[
+          { href: '/app/example', label: '/app/example' },
+          { href: '/app', label: '/app' },
+          { href: '/console/users', label: '/console/users' },
+        ]}
+        detail={error instanceof Error ? error.message : 'unknown security page error'}
+        message="account security 画面は認証済みユーザー情報を読むので、DB や session の初期化が落ちると開けません。"
+        title="account security をまだ開けません"
+      />
+    )
+  }
 
   if (!req.user) {
     return (

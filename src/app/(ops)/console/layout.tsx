@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { CSSProperties, ReactNode } from 'react'
 
+import { RuntimeFallbackPage } from '@/app/_components/runtime-fallback'
 import { canReadPlatform } from '@/core/access'
 import { CONSOLE_NAV_ITEMS } from '@/core/ops/console'
 import { createAuthenticatedServerComponentRequest } from '@/core/server/serverComponentPayload'
@@ -20,7 +21,26 @@ type ConsoleLayoutProps = {
 }
 
 export default async function ConsoleLayout({ children }: ConsoleLayoutProps) {
-  const { req } = await createAuthenticatedServerComponentRequest('/console')
+  let req: Awaited<ReturnType<typeof createAuthenticatedServerComponentRequest>>['req']
+
+  try {
+    const request = await createAuthenticatedServerComponentRequest('/console')
+    req = request.req
+  } catch (error) {
+    return (
+      <RuntimeFallbackPage
+        actions={[
+          { href: '/app/example', label: '/app/example' },
+          { href: '/bootstrap/owner', label: '/bootstrap/owner' },
+          { href: '/admin', label: '/admin' },
+        ]}
+        detail={error instanceof Error ? error.message : 'unknown console bootstrap error'}
+        eyebrow="Studio99 Console"
+        message="console は管理用の live データを読むので、DB や Payload 初期化が崩れていると開けません。赤いエラー画面ではなく、ここで復旧の入口を出します。"
+        title="console はまだ起動できていません"
+      />
+    )
+  }
 
   if (!canReadPlatform({ req })) {
     return (
