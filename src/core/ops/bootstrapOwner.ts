@@ -2,7 +2,7 @@ import type { PayloadRequest } from 'payload'
 
 import { env } from '@/lib/env'
 
-import { createSystemLocalApi } from '../server/localApi'
+import { createScopedLocalApi, createSystemLocalApi } from '../server/localApi'
 
 type CreatePlatformOwnerArgs = {
   displayName?: string
@@ -203,7 +203,12 @@ export const createFirstPlatformOwner = async ({
       },
     })
 
-    await api.create({
+    const ownerReq = {
+      ...req,
+      user: owner,
+    } as PayloadRequest
+
+    await createScopedLocalApi(ownerReq).create({
       collection: 'memberships',
       depth: 0,
       data: {
