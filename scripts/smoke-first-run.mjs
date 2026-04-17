@@ -700,6 +700,7 @@ const fetchCollectionList = async ({
 const createWebhookEventId = () =>
   `evt_smoke_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`
 const RESTORE_DRILL_REMINDER_SUMMARY = 'Restore drill reminder issued'
+const stripeEnabled = process.env.STRIPE_ENABLED?.trim().toLowerCase() === 'true'
 
 const bootstrapOwner = async () => {
   if (!bootstrapToken) {
@@ -966,8 +967,8 @@ const runCrudRoundTripSmoke = async ({
 }
 
 const runBillingWebhookSmoke = async ({ organizationId }) => {
-  if (!organizationId || !process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
-    log('[skip] billing webhook smoke is skipped because Stripe env or organization context is unavailable.')
+  if (!stripeEnabled || !organizationId || !process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    log('[skip] billing webhook smoke is skipped because Stripe is disabled or organization context is unavailable.')
     return
   }
 
@@ -1050,8 +1051,8 @@ const runBillingWebhookRetrySmoke = async ({
   organizationId,
   sessionCookie,
 }) => {
-  if (!sessionCookie || !organizationId || !process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
-    log('[skip] billing webhook retry smoke is skipped because auth, organization, or Stripe env is unavailable.')
+  if (!stripeEnabled || !sessionCookie || !organizationId || !process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    log('[skip] billing webhook retry smoke is skipped because Stripe is disabled, auth is missing, or organization context is unavailable.')
     return
   }
 
