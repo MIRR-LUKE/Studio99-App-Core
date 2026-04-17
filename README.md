@@ -66,6 +66,129 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 
 迷ったら、まずは `/bootstrap/owner` → `/admin` → `/console` → `/app` の順で触れば大丈夫です。
 
+## この core を使って最初の app を作る最短フロー
+
+ここは「この土台の上に、自分の最初の app を1本立てる」ときの最短コースです。
+
+いちばん短い画面遷移はこれです。
+
+`/bootstrap/owner` → `/console` → `/console/factory` → `/app/<projectKey>` → `/console/projects/<projectKey>` → `/admin`
+
+### 1. core を起動する
+
+まずは core 自体を起動します。
+
+1. `.env.local` を用意する
+2. `npm install`
+3. `npm run dev:infra`
+4. `npm run generate:types`
+5. `npm run generate:importmap`
+6. `npm run db:migrate`
+7. `npm run dev`
+8. `/bootstrap/owner` を開いて最初の管理者を作る
+9. 作成できたら `/console` に入る
+
+ここまでできれば、もう app を増やし始めて大丈夫です。
+
+### 2. `/console/factory` で新しい app を作る
+
+`/console/factory` を開いたら、次の順で進めます。
+
+1. template を選ぶ
+2. `projectKey` を入れる
+3. `projectName` を入れる
+4. preview で routes / collections / feature flags / next steps を確認する
+5. scaffold を作る
+
+作成が終わると、次に触る場所が見えるようになっています。
+
+### 3. 生成された app を最初に見る場所
+
+project を作った直後は、まずこの順で見るのがいちばん速いです。
+
+1. `src/projects/<projectKey>/project.config.ts`
+2. `src/projects/<projectKey>/feature-flags.ts`
+3. `src/projects/<projectKey>/collections/<collectionSlug>.ts`
+4. `src/app/(app)/app/<projectKey>/page.tsx`
+5. `src/app/api/<projectKey>/route.ts`
+
+これで、
+
+- app の名前
+- どんな route があるか
+- どんな collection を足すか
+- 最初の画面
+- 最初の API
+
+が一気に見えます。
+
+### 4. 最初の1画面を作る
+
+最初は大きく作らなくて大丈夫です。まずは1画面だけ作れば十分です。
+
+おすすめの順番はこれです。
+
+1. `src/app/(app)/app/<projectKey>/page.tsx` に最初の画面を作る
+2. 必要なら `src/app/api/<projectKey>/route.ts` に最初の API を足す
+3. データが必要なら `src/projects/<projectKey>/collections/<collectionSlug>.ts` を作る
+4. `npm run generate:types` を流す
+5. `/app/<projectKey>` を開いて確認する
+
+つまり、最初の app は
+
+- 画面
+- API
+- collection
+
+の3つだけ足せば動き始めます。
+
+auth、organization、billing、media、invite、admin、ops は core 側がすでに持っています。
+
+### 5. 管理したくなったらどこへ行くか
+
+作っている途中で迷ったら、見る場所はこの3つです。
+
+- `/app/<projectKey>`: その app 自体を見る
+- `/console/projects/<projectKey>`: project の設定や導線を確認する
+- `/admin`: 生データを直接見る
+
+ふだんの管理は `/console`、生データ確認は `/admin`、ユーザー向け画面は `/app/<projectKey>` と覚えれば十分です。
+
+### 6. 最初の app を作るときの考え方
+
+この core では、毎回同じ土台を作り直さないのが大事です。
+
+なので、最初の app で自分が本当に足すものはだいたい次のどれかです。
+
+- project 固有の collection
+- project 固有の page
+- project 固有の API
+- project 固有の業務ロジック
+
+逆に、最初からあるものは core に任せて大丈夫です。
+
+- login / logout / owner bootstrap
+- users / organizations / memberships / invites
+- `/console`
+- `/admin`
+- billing
+- media
+- jobs
+- recovery
+- security の基本方針
+
+### 7. 最初の app を作るときの最短チェック
+
+ここまで終わったら、最後にこれだけ確認してください。
+
+1. `/app/<projectKey>` が開く
+2. `/console/projects/<projectKey>` に project が見える
+3. `/admin` で project の collection が見える
+4. `npm run lint`
+5. `npm run typecheck`
+
+この5つが通れば、最初の app はちゃんと土台に乗っています。
+
 ## まずやること
 
 1. `npm install`
