@@ -99,7 +99,7 @@ export const Users: CollectionConfig = {
       type: 'select',
       defaultValue: 'platform_readonly',
       access: {
-        read: ({ req }) => Boolean(req.user?.platformRole),
+        read: ({ req }) => Boolean(req.user),
         update: ({ req }) => ['platform_owner', 'platform_admin'].includes(String(req.user?.platformRole)),
       },
       options: [

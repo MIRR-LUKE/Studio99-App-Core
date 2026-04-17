@@ -1370,6 +1370,7 @@ const run = async () => {
           payload?.user?.currentOrganization ??
           payload?.currentOrganization ??
           payload?.doc?.currentOrganization ??
+          currentOrganizationId ??
           null
       },
       {
