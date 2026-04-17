@@ -68,10 +68,18 @@ core touching PR は project-only PR より慎重に扱います。
 基本の検証は次です。
 
 ```bash
+npm run db:migrate
+npm run db:migrate:status
 npm run generate:types
 npm run generate:importmap
 npm run typecheck
 npm run lint
+```
+
+空の DB を最初から作り直す時は、次を使います。
+
+```bash
+npm run db:migrate:fresh
 ```
 
 変更の後は、CI でこれらが通ることを前提にします。
@@ -82,4 +90,3 @@ npm run lint
 - generated files を更新し忘れる
 - destructive change を誰でも実行できる状態にする
 - rollback のない schema 変更をそのまま入れる
-

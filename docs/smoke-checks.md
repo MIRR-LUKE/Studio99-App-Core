@@ -20,6 +20,7 @@ CI では `build` のあとに `scripts/smoke-first-run.mjs` を回します。
 ## ローカルで回す
 
 ```bash
+npm run db:migrate
 npm run smoke:first-run
 ```
 
@@ -46,6 +47,7 @@ smoke が落ちたら、まず次を見ます。
 1. `npm run dev:infra`
 2. `npm run generate:types`
 3. `npm run generate:importmap`
-4. `.env.local` の `DATABASE_URL` と `BOOTSTRAP_OWNER_TOKEN`
+4. `npm run db:migrate`
+5. `.env.local` の `DATABASE_URL` と `BOOTSTRAP_OWNER_TOKEN`
 
 `/api/ready` が通るのに `smoke` だけ落ちる場合は、route の文言や導線がずれていることが多いです。

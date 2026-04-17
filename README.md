@@ -37,13 +37,14 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 2. `npm install`
 3. `npm run generate:types`
 4. `npm run generate:importmap`
-5. `npm run dev`
-6. `http://localhost:3000/bootstrap/owner` で最初の `platform_owner` を作る
-7. `http://localhost:3000/admin` で core のデータと設定を確認する
-8. `http://localhost:3000/console` を開いて全体の管理画面を見る
-9. `http://localhost:3000/console/factory` で新しい project を作る
-10. `http://localhost:3000/console/ops` で運用系の入口を触る
-11. `http://localhost:3000/app` で project に入り、画面と API を足していく
+5. `npm run db:migrate`
+6. `npm run dev`
+7. `http://localhost:3000/bootstrap/owner` で最初の `platform_owner` を作る
+8. `http://localhost:3000/admin` で core のデータと設定を確認する
+9. `http://localhost:3000/console` を開いて全体の管理画面を見る
+10. `http://localhost:3000/console/factory` で新しい project を作る
+11. `http://localhost:3000/console/ops` で運用系の入口を触る
+12. `http://localhost:3000/app` で project に入り、画面と API を足していく
 
 迷ったら、まずは `/bootstrap/owner` → `/admin` → `/console` → `/app` の順で触れば大丈夫です。
 
@@ -55,8 +56,9 @@ Studio99 Application Core は、Studio99 の新規アプリを早く作るため
 4. `.env.local` に最低限の env を入れる
 5. `npm run generate:types`
 6. `npm run generate:importmap`
-7. `npm run dev`
-8. `http://localhost:3000/bootstrap/owner` を開いて最初の管理者を作る
+7. `npm run db:migrate`
+8. `npm run dev`
+9. `http://localhost:3000/bootstrap/owner` を開いて最初の管理者を作る
 
 最初の owner を作ったら、次に開く場所はこの3つです。
 
@@ -163,9 +165,10 @@ npm run bootstrap:project -- console "Studio99 Console" saas
 ## 最初の管理者の作り方
 
 1. `.env.local` に `BOOTSTRAP_OWNER_TOKEN` を入れる
-2. `http://localhost:3000/bootstrap/owner` を開く
-3. メールアドレス、パスワード、token を入れる
-4. 作成できたら `/admin` で中身を確認し、`/console` に進む
+2. `npm run db:migrate` を流す
+3. `http://localhost:3000/bootstrap/owner` を開く
+4. メールアドレス、パスワード、token を入れる
+5. 作成できたら `/admin` で中身を確認し、`/console` に進む
 
 この導線は「最初の1人」を作るためのものです。
 以降の user 管理は `/admin` と core の collection で行います。
@@ -193,6 +196,9 @@ npm install
 npm run dev:infra
 npm run generate:types
 npm run generate:importmap
+npm run db:migrate
+npm run db:migrate:fresh
+npm run db:migrate:status
 npm run dev
 npm run build
 npm run typecheck

@@ -9,6 +9,7 @@ npm install
 npm run dev:infra
 npm run generate:types
 npm run generate:importmap
+npm run db:migrate
 npm run dev
 ```
 
@@ -21,7 +22,7 @@ npm run dev
 
 ## 2. 最初の管理者を作る
 
-`.env.local` に `BOOTSTRAP_OWNER_TOKEN` を入れて、`/bootstrap/owner` を開きます。
+`.env.local` に `BOOTSTRAP_OWNER_TOKEN` を入れて、`npm run db:migrate` を流してから `/bootstrap/owner` を開きます。
 
 そこで最初の `platform_owner` を作ります。  
 この 1 人が、その環境の管理者です。
@@ -174,6 +175,7 @@ project を作ると、まずは次を見れば十分です。
 ```bash
 npm run generate:types
 npm run generate:importmap
+npm run db:migrate
 ```
 
 ## 9. 困ったら

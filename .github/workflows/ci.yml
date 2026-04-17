@@ -56,6 +56,9 @@ jobs:
       - name: Generate Payload import map
         run: npm run generate:importmap
 
+      - name: Prepare database schema
+        run: npm run db:migrate:fresh
+
       - name: Run lint
         run: |
           if [ -f eslint.config.mjs ] || [ -f .eslintrc.json ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.js ]; then

@@ -36,13 +36,21 @@ npm run generate:types
 npm run generate:importmap
 ```
 
-## 5. 開発サーバーを起動する
+## 5. DB スキーマを作る
+
+```bash
+npm run db:migrate
+```
+
+空の DB を最初から作り直したいときは `npm run db:migrate:fresh` を使います。
+
+## 6. 開発サーバーを起動する
 
 ```bash
 npm run dev
 ```
 
-## 6. 最初の管理者を作る
+## 7. 最初の管理者を作る
 
 ブラウザで `http://localhost:3000/bootstrap/owner` を開きます。
 
@@ -55,13 +63,13 @@ npm run dev
 条件を満たしたら最初の `platform_owner` を作ります。
 これが、その環境の最初の管理者です。
 
-## 7. 次に開く場所
+## 8. 次に開く場所
 
 - `http://localhost:3000/app`
 - `http://localhost:3000/admin`
 - `http://localhost:3000/console`
 
-## 8. 新しい project を作る
+## 9. 新しい project を作る
 
 方法は 2 つあります。
 
@@ -81,7 +89,7 @@ template 付き:
 npm run bootstrap:project -- console "Studio99 Console" saas
 ```
 
-## 9. まず見るファイル
+## 10. まず見るファイル
 
 新しい project を作ったら、まずはこれを見ます。
 
@@ -91,7 +99,7 @@ npm run bootstrap:project -- console "Studio99 Console" saas
 - `src/app/(app)/app/<projectKey>/page.tsx`
 - `src/app/api/<projectKey>/route.ts`
 
-## 10. 見本
+## 11. 見本
 
 repo には `example` project を同梱しています。
 
@@ -101,7 +109,7 @@ repo には `example` project を同梱しています。
 
 迷ったら、まず `example` を見てください。
 
-## 11. 困ったら
+## 12. 困ったら
 
 - [docs/how-to-use.md](./how-to-use.md)
 - [docs/bootstrap.md](./bootstrap.md)
