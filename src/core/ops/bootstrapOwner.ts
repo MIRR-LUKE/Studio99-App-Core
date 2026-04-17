@@ -30,6 +30,17 @@ type BootstrapOwnerEventArgs = {
 
 export const isOwnerBootstrapEnabled = () => Boolean(env.bootstrap.ownerToken)
 
+const toBootstrapOrganizationSlug = (email: string) => {
+  const localPart = email
+    .trim()
+    .toLowerCase()
+    .split('@')[0]
+    ?.replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return `${localPart || 'platform'}-workspace`
+}
+
 export const hasPlatformOwner = async (req: PayloadRequest) => {
   const api = createSystemLocalApi(req, 'check existing platform owner')
   const result = await api.find({
@@ -119,38 +130,121 @@ export const createFirstPlatformOwner = async ({
 
   const api = createSystemLocalApi(req, 'create first platform owner')
   const defaultName = email.split('@')[0] || 'platform-owner'
+  const organizationSlug = toBootstrapOrganizationSlug(email)
+  const joinedAt = new Date().toISOString()
 
-  const owner = await api.create({
-    collection: 'users',
+  const existingOrganizations = await api.find({
+    collection: 'organizations',
     depth: 0,
-    data: {
-      _verified: true,
-      displayName: displayName?.trim() || defaultName,
-      email: email.trim().toLowerCase(),
-      locale: 'ja',
-      password,
-      platformRole: 'platform_owner',
-      security: {
-        mfa: {
-          enabled: false,
-          preferredMethod: 'totp',
-          recoveryCodeVersion: 0,
-        },
-        passwordChangedAt: new Date().toISOString(),
+    limit: 1,
+    where: {
+      slug: {
+        equals: organizationSlug,
       },
-      status: 'active',
-      timezone: 'Asia/Tokyo',
     },
   })
 
-  await recordBootstrapOwnerEvent({
-    email,
-    reason: 'platform owner bootstrap completed successfully',
-    relatedId: owner.id,
-    req,
-    status: 'succeeded',
-    summary: 'Platform owner bootstrap completed',
-  })
+  const existingOrganization = existingOrganizations.docs[0]
+  const organization =
+    existingOrganization ??
+    (await api.create({
+      collection: 'organizations',
+      depth: 0,
+      data: {
+        billingStatus: 'none',
+        name: 'Studio99 Platform',
+        slug: organizationSlug,
+        status: 'active',
+        type: 'internal',
+      },
+    }))
 
-  return owner
+  const createdOrganizationId = existingOrganization ? null : organization.id
+
+  try {
+    const owner = await api.create({
+      collection: 'users',
+      depth: 0,
+      data: {
+        _verified: true,
+        currentOrganization: organization.id,
+        displayName: displayName?.trim() || defaultName,
+        email: email.trim().toLowerCase(),
+        locale: 'ja',
+        organizations: [
+          {
+            joinedAt,
+            organization: organization.id,
+            role: 'org_owner',
+            status: 'active',
+          },
+        ],
+        password,
+        platformRole: 'platform_owner',
+        security: {
+          mfa: {
+            enabled: false,
+            preferredMethod: 'totp',
+            recoveryCodeVersion: 0,
+          },
+          passwordChangedAt: joinedAt,
+        },
+        status: 'active',
+        timezone: 'Asia/Tokyo',
+      },
+    })
+
+    await api.update({
+      collection: 'organizations',
+      id: organization.id,
+      depth: 0,
+      data: {
+        ownerUser: owner.id,
+      },
+    })
+
+    await api.create({
+      collection: 'memberships',
+      depth: 0,
+      data: {
+        joinedAt,
+        organization: organization.id,
+        role: 'org_owner',
+        status: 'active',
+        user: owner.id,
+      },
+    })
+
+    await recordBootstrapOwnerEvent({
+      email,
+      reason: 'platform owner bootstrap completed successfully',
+      relatedId: owner.id,
+      req,
+      status: 'succeeded',
+      summary: 'Platform owner bootstrap completed',
+    })
+
+    return owner
+  } catch (error) {
+    if (createdOrganizationId) {
+      try {
+        await api.delete({
+          collection: 'organizations',
+          id: createdOrganizationId,
+        })
+      } catch {
+        // Leave the original error intact. Cleanup failure will surface via ops if needed.
+      }
+    }
+
+    await recordBootstrapOwnerEvent({
+      email,
+      reason: error instanceof Error ? error.message : 'platform owner bootstrap failed',
+      req,
+      status: 'failed',
+      summary: 'Platform owner bootstrap failed',
+    })
+
+    throw error
+  }
 }
