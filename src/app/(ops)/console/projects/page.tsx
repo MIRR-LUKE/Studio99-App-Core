@@ -78,7 +78,9 @@ export default async function ConsoleProjectsPage() {
           {projects.map((project) => (
             <article key={project.key} style={consoleCardStyle}>
               <p style={{ margin: '0 0 8px' }}>
-                <strong>{project.key}</strong>
+                <strong>
+                  <Link href={`/console/projects/${project.key}`}>{project.key}</Link>
+                </strong>
               </p>
               <p style={consoleMutedStyle}>{displayValue(project.docsPath)}</p>
               <ul style={{ lineHeight: 1.7, margin: '10px 0 0', paddingLeft: '20px' }}>
@@ -89,6 +91,11 @@ export default async function ConsoleProjectsPage() {
                 <li>template: {project.manifest.templateLabel}</li>
                 <li>collections: {project.manifest.collections.join(', ')}</li>
               </ul>
+              <div style={{ marginTop: '12px' }}>
+                <Link href={`/console/projects/${project.key}`} style={consoleLinkStyle}>
+                  詳細を開く
+                </Link>
+              </div>
             </article>
           ))}
           {projects.length === 0 ? (
