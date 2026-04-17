@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     organizationId?: null | number | string
   }
 
-  const rateLimited = enforceRateLimit({
+  const rateLimited = await enforceRateLimit({
     identityParts: [req.user.id, body.organizationId ?? 'current'],
     limit: 12,
     request,

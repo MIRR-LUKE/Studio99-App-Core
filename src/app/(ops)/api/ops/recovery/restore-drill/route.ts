@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as { confirm?: boolean; reason?: string }
   const reason = requireDangerousActionReason(body)
 
-  const rateLimited = enforceRateLimit({
+  const rateLimited = await enforceRateLimit({
     identityParts: [req.user.id, 'restore-drill'],
     limit: 5,
     request,

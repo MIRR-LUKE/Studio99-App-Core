@@ -38,9 +38,9 @@ same-origin / CSRF guard と rate limit を特に強めるのは次です。
 
 - `SECURITY_CORS_ALLOWLIST`: 許可する追加 origin をカンマ区切りで指定する
 - `AUTH_COOKIE_SECURE`: `true` のとき session cookie に `Secure` を必須にする
-- `SECURITY_RATE_LIMIT_STORE`: `memory` が既定。将来の共有ストア切り替え口として予約してある
-- `SECURITY_RATE_LIMIT_STORE_URL`: 将来の共有ストア接続先として予約してある
-- `SECURITY_RATE_LIMIT_STORE_TOKEN`: 将来の共有ストア認証トークンとして予約してある
+- `SECURITY_RATE_LIMIT_STORE`: `memory` か `upstash-redis`
+- `SECURITY_RATE_LIMIT_STORE_URL`: `upstash-redis` を使うときの REST URL
+- `SECURITY_RATE_LIMIT_STORE_TOKEN`: `upstash-redis` を使うときの REST token
 
 `NEXT_PUBLIC_SERVER_URL` の origin は常に許可対象に含めます。
 `cf-connecting-ip`、`x-real-ip`、`x-forwarded-for` の順で、妥当な IP を rate limit の識別子に使います。
@@ -53,3 +53,4 @@ same-origin / CSRF guard と rate limit を特に強めるのは次です。
 - 失敗しやすい endpoint は rate limit と retry 前提で設計する
 - `/api/core/invites` と `/api/core/invites/accept` は no-store を維持する
 - `/api/bootstrap/platform-owner` は no-store と security headers を維持する
+- 本番で複数 instance を動かすときは `SECURITY_RATE_LIMIT_STORE=upstash-redis` を使う

@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const rateLimited = enforceRateLimit({
+  const rateLimited = await enforceRateLimit({
     identityParts: [req.user.id, body.projectKey, body.template ?? 'workspace'],
     limit: 10,
     request,
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { writeProjectScaffold } = await import('@/core/ops/bootstrap')
+    const { writeProjectScaffold } = await import('@/core/ops/bootstrap-write')
     const result = await writeProjectScaffold({
       name: body.name,
       projectKey: body.projectKey,

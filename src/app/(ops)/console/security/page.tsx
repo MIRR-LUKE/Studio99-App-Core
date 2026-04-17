@@ -88,6 +88,9 @@ export default async function ConsoleSecurityPage() {
         <div style={consoleCardStyle}>
           <p style={{ margin: '0 0 6px' }}>rate limit store</p>
           <strong>{env.security.rateLimitStore}</strong>
+          <p style={{ margin: '6px 0 0' }}>
+            {env.security.rateLimitStore === 'upstash-redis' ? 'shared' : 'single-process'}
+          </p>
         </div>
         <div style={consoleCardStyle}>
           <p style={{ margin: '0 0 6px' }}>audit logs</p>

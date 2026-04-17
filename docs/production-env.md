@@ -100,8 +100,9 @@ billing を使うなら次を設定します。
 
 ### security
 
-- 現状の runtime は `SECURITY_RATE_LIMIT_STORE=memory` 前提です
-- `SECURITY_RATE_LIMIT_STORE_URL` と `SECURITY_RATE_LIMIT_STORE_TOKEN` は将来の共有ストア切り替え口として予約してあります
+- 単一 instance だけなら `SECURITY_RATE_LIMIT_STORE=memory` でよいです
+- 複数 instance / serverless 本番では `SECURITY_RATE_LIMIT_STORE=upstash-redis` を使います
+- `SECURITY_RATE_LIMIT_STORE_URL` と `SECURITY_RATE_LIMIT_STORE_TOKEN` は `upstash-redis` 用です
 
 - `SECURITY_CORS_ALLOWLIST`
 - `SECURITY_RATE_LIMIT_STORE`

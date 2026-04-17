@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const rateLimited = enforceRateLimit({
+  const rateLimited = await enforceRateLimit({
     identityParts: [req.user.id, 'logout-all'],
     limit: 5,
     request,

@@ -53,7 +53,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const { id } = await params
 
-  const rateLimited = enforceRateLimit({
+  const rateLimited = await enforceRateLimit({
     identityParts: [req.user.id, id],
     limit: 20,
     request,

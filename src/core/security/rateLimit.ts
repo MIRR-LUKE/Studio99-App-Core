@@ -1,3 +1,7 @@
+import { Redis } from '@upstash/redis'
+
+import { env } from '@/lib/env'
+
 import { applySecurityHeaders, createSecurityErrorResponse } from './http'
 
 type RateLimitEntry = {
@@ -17,14 +21,42 @@ type RateLimitOptions = RateLimitScope & {
 }
 
 type Studio99RateLimitStore = Map<string, RateLimitEntry>
+type RateLimitStoreName = 'memory' | 'memory-fallback' | 'upstash-redis'
+type RateLimitResult = {
+  allowed: boolean
+  count: number
+  expiresAt: number
+  remaining: number
+  store: RateLimitStoreName
+}
 
 declare global {
   var __studio99RateLimitStore: Studio99RateLimitStore | undefined
+  var __studio99RateLimitStoreFallbackWarned: boolean | undefined
+  var __studio99UpstashRateLimitRedis: Redis | undefined
 }
 
 const getStore = () => {
   globalThis.__studio99RateLimitStore ??= new Map<string, RateLimitEntry>()
   return globalThis.__studio99RateLimitStore
+}
+
+const getUpstashRedis = () => {
+  globalThis.__studio99UpstashRateLimitRedis ??= new Redis({
+    token: env.security.rateLimitStoreToken,
+    url: env.security.rateLimitStoreUrl,
+  })
+
+  return globalThis.__studio99UpstashRateLimitRedis
+}
+
+const warnAboutFallback = (error: unknown) => {
+  if (globalThis.__studio99RateLimitStoreFallbackWarned) {
+    return
+  }
+
+  globalThis.__studio99RateLimitStoreFallbackWarned = true
+  console.error('[security] shared rate limit store is unavailable. Falling back to in-memory store.', error)
 }
 
 const isIpv4 = (value: string) =>
@@ -83,28 +115,108 @@ const buildKey = ({ identityParts, request, scope }: RateLimitOptions) => {
   return parts.join(':')
 }
 
-export const enforceRateLimit = (options: RateLimitOptions) => {
+const checkRateLimitInMemory = (
+  key: string,
+  limit: number,
+  windowMs: number,
+  storeName: Extract<RateLimitStoreName, 'memory' | 'memory-fallback'>,
+): RateLimitResult => {
   const store = getStore()
-  const key = buildKey(options)
   const now = Date.now()
   const entry = store.get(key)
 
   if (!entry || entry.expiresAt <= now) {
     store.set(key, {
       count: 1,
-      expiresAt: now + options.windowMs,
+      expiresAt: now + windowMs,
     })
 
-    return null
+    return {
+      allowed: true,
+      count: 1,
+      expiresAt: now + windowMs,
+      remaining: Math.max(0, limit - 1),
+      store: storeName,
+    }
   }
 
-  if (entry.count < options.limit) {
+  if (entry.count < limit) {
     entry.count += 1
     store.set(key, entry)
+
+    return {
+      allowed: true,
+      count: entry.count,
+      expiresAt: entry.expiresAt,
+      remaining: Math.max(0, limit - entry.count),
+      store: storeName,
+    }
+  }
+
+  return {
+    allowed: false,
+    count: entry.count,
+    expiresAt: entry.expiresAt,
+    remaining: 0,
+    store: storeName,
+  }
+}
+
+const checkRateLimitInUpstash = async (
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<RateLimitResult> => {
+  const now = Date.now()
+  const redis = getUpstashRedis()
+  const count = await redis.incr(key)
+
+  let ttlMs = windowMs
+
+  if (count === 1) {
+    await redis.pexpire(key, windowMs)
+  } else {
+    ttlMs = await redis.pttl(key)
+
+    if (ttlMs < 0) {
+      await redis.pexpire(key, windowMs)
+      ttlMs = windowMs
+    }
+  }
+
+  return {
+    allowed: count <= limit,
+    count,
+    expiresAt: now + ttlMs,
+    remaining: Math.max(0, limit - count),
+    store: 'upstash-redis',
+  }
+}
+
+const checkRateLimit = async (
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<RateLimitResult> => {
+  if (env.security.rateLimitStore === 'upstash-redis') {
+    try {
+      return await checkRateLimitInUpstash(key, limit, windowMs)
+    } catch (error) {
+      warnAboutFallback(error)
+      return checkRateLimitInMemory(key, limit, windowMs, 'memory-fallback')
+    }
+  }
+
+  return checkRateLimitInMemory(key, limit, windowMs, 'memory')
+}
+
+export const enforceRateLimit = async (options: RateLimitOptions) => {
+  const result = await checkRateLimit(buildKey(options), options.limit, options.windowMs)
+  if (result.allowed) {
     return null
   }
 
-  const retryAfterSeconds = Math.max(1, Math.ceil((entry.expiresAt - now) / 1000))
+  const retryAfterSeconds = Math.max(1, Math.ceil((result.expiresAt - Date.now()) / 1000))
   const response = createSecurityErrorResponse(options.request, 429, 'Rate limit exceeded.', {
     exposeHeaders: ['Retry-After', 'X-Request-Id'],
   })
@@ -112,7 +224,8 @@ export const enforceRateLimit = (options: RateLimitOptions) => {
   response.headers.set('retry-after', String(retryAfterSeconds))
   response.headers.set('x-rate-limit-limit', String(options.limit))
   response.headers.set('x-rate-limit-remaining', '0')
-  response.headers.set('x-rate-limit-reset', String(Math.ceil(entry.expiresAt / 1000)))
+  response.headers.set('x-rate-limit-reset', String(Math.ceil(result.expiresAt / 1000)))
+  response.headers.set('x-rate-limit-store', result.store)
   applySecurityHeaders(response, options.request, { cacheControl: 'no-store' })
 
   return response

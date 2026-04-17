@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const rateLimited = enforceRateLimit({
+  const rateLimited = await enforceRateLimit({
     identityParts: [req.user.id, body.token.slice(0, 8)],
     limit: 10,
     request,

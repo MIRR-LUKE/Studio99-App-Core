@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as { queue?: string; schedule?: boolean }
 
-  const rateLimited = enforceRateLimit({
+  const rateLimited = await enforceRateLimit({
     identityParts: [req.user.id, body.queue ?? 'default', body.schedule ? 'schedule' : 'run'],
     limit: 30,
     request,

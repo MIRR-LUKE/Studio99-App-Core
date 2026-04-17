@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     return sameOriginGuard
   }
 
-  const rateLimited = enforceRateLimit({
+  const rateLimited = await enforceRateLimit({
     identityParts: ['bootstrap-owner'],
     limit: 5,
     request,
