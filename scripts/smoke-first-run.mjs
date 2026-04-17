@@ -1274,49 +1274,58 @@ const waitForReady = async () => {
     throw lastError ?? new Error('Timed out waiting for /bootstrap/owner.')
   }
 
-  const healthResponse = await fetchWithTimeout(`${options.baseUrl}/api/health`, {
-    headers: {
-      accept: 'application/json',
-      'user-agent': 'studio99-smoke/first-run',
-    },
-  }, 10_000)
+  while (Date.now() < deadline) {
+    try {
+      const healthResponse = await fetchWithTimeout(`${options.baseUrl}/api/health`, {
+        headers: {
+          accept: 'application/json',
+          'user-agent': 'studio99-smoke/first-run',
+        },
+      }, 10_000)
 
-  const healthText = await readText(healthResponse)
-  if (healthResponse.status >= 500) {
-    throw new Error(`/api/health returned ${healthResponse.status}: ${healthText.slice(0, 240)}`)
+      const healthText = await readText(healthResponse)
+      if (healthResponse.status >= 500) {
+        throw new Error(`/api/health returned ${healthResponse.status}: ${healthText.slice(0, 240)}`)
+      }
+
+      if (!healthResponse.ok) {
+        throw new Error(`/api/health returned ${healthResponse.status}.`)
+      }
+
+      const health = healthText ? JSON.parse(healthText) : {}
+      if (health.status !== 'ok') {
+        throw new Error(`/api/health was not ok: ${healthText.slice(0, 240)}`)
+      }
+
+      const response = await fetchWithTimeout(`${options.baseUrl}/api/ready`, {
+        headers: {
+          accept: 'application/json',
+          'user-agent': 'studio99-smoke/first-run',
+        },
+      }, 10_000)
+
+      const readyText = await readText(response)
+      if (response.status >= 500) {
+        throw new Error(`/api/ready returned ${response.status}: ${readyText.slice(0, 240)}`)
+      }
+
+      if (!response.ok) {
+        throw new Error(`/api/ready returned ${response.status}.`)
+      }
+
+      const payload = readyText ? JSON.parse(readyText) : {}
+      if (payload.ready !== true) {
+        throw new Error(`/api/ready was not ready: ${readyText.slice(0, 240)}`)
+      }
+
+      return payload
+    } catch (error) {
+      lastError = error
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
   }
 
-  if (!healthResponse.ok) {
-    throw new Error(`/api/health returned ${healthResponse.status}.`)
-  }
-
-  const health = healthText ? JSON.parse(healthText) : {}
-  if (health.status !== 'ok') {
-    throw new Error(`/api/health was not ok: ${healthText.slice(0, 240)}`)
-  }
-
-  const response = await fetchWithTimeout(`${options.baseUrl}/api/ready`, {
-    headers: {
-      accept: 'application/json',
-      'user-agent': 'studio99-smoke/first-run',
-    },
-  }, 10_000)
-
-  const readyText = await readText(response)
-  if (response.status >= 500) {
-    throw new Error(`/api/ready returned ${response.status}: ${readyText.slice(0, 240)}`)
-  }
-
-  if (!response.ok) {
-    throw new Error(`/api/ready returned ${response.status}.`)
-  }
-
-  const payload = readyText ? JSON.parse(readyText) : {}
-  if (payload.ready !== true) {
-    throw new Error(`/api/ready was not ready: ${readyText.slice(0, 240)}`)
-  }
-
-  return payload
+  throw lastError ?? new Error('Timed out waiting for /api/health and /api/ready.')
 }
 
 const run = async () => {
