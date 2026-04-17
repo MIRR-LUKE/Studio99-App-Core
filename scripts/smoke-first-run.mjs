@@ -185,7 +185,13 @@ const PAGE_ROUTE_MANIFEST = [
   {
     pathname: '/app/console',
     mustInclude: ['Studio99 Console'],
-    oneOf: ['app から console へ', 'console project', 'current organization'],
+    oneOf: [
+      'app から console へ',
+      'console project',
+      'current organization',
+      'Studio99 Console ワークスペース',
+      'サインイン後にもう一度開いてください。',
+    ],
   },
   {
     pathname: '/app/security',
