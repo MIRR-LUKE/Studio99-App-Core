@@ -2,11 +2,13 @@
 
 import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:3000'
 const DEFAULT_HOST = '0.0.0.0'
 const DEFAULT_PORT = 3000
 const DEFAULT_TIMEOUT_MS = 180_000
+const NEXT_START_BIN = fileURLToPath(new URL('../node_modules/next/dist/bin/next', import.meta.url))
 
 const loadDotEnvFile = async (filePath) => {
   try {
@@ -164,43 +166,62 @@ const printServerLogs = () => {
 }
 
 const stopServer = async () => {
-  if (!serverProcess || serverProcess.killed) {
+  if (!serverProcess) {
+    return
+  }
+
+  const child = serverProcess
+  const hasExited = () => child.exitCode !== null || child.signalCode !== null
+
+  if (hasExited()) {
+    serverProcess = null
     return
   }
 
   const exited = new Promise((resolve) => {
-    serverProcess.once('exit', resolve)
+    child.once('exit', resolve)
   })
 
-  serverProcess.kill('SIGTERM')
+  const killServer = (signal) => {
+    if (process.platform !== 'win32' && child.pid) {
+      try {
+        process.kill(-child.pid, signal)
+        return
+      } catch {
+        // Fall back to the child handle below.
+      }
+    }
+
+    try {
+      child.kill(signal)
+    } catch {
+      // Ignore shutdown races.
+    }
+  }
+
+  killServer('SIGTERM')
 
   await Promise.race([
     exited,
     new Promise((resolve) => setTimeout(resolve, 5000)),
   ])
 
-  if (!serverProcess.killed) {
-    serverProcess.kill('SIGKILL')
+  if (!hasExited()) {
+    killServer('SIGKILL')
+
+    await Promise.race([
+      exited,
+      new Promise((resolve) => setTimeout(resolve, 5000)),
+    ])
   }
+
+  serverProcess = null
 }
 
 const startServer = () =>
   new Promise((resolve, reject) => {
-    const startArgs = ['run', 'start', '--', '--hostname', options.host, '--port', String(options.port)]
-    const spawnCommand =
-      process.platform === 'win32'
-        ? 'cmd.exe'
-        : process.env.npm_execpath
-          ? process.execPath
-          : 'npm'
-    const spawnArgs =
-      process.platform === 'win32'
-        ? ['/d', '/s', '/c', `npm ${startArgs.join(' ')}`]
-        : process.env.npm_execpath
-          ? [process.env.npm_execpath, ...startArgs]
-          : startArgs
-
-    const child = spawn(spawnCommand, spawnArgs, {
+    const child = spawn(process.execPath, [NEXT_START_BIN, 'start', '--hostname', options.host, '--port', String(options.port)], {
+      detached: process.platform !== 'win32',
       env: {
         ...process.env,
         NEXT_TELEMETRY_DISABLED: process.env.NEXT_TELEMETRY_DISABLED ?? '1',
