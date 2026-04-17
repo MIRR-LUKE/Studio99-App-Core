@@ -208,17 +208,31 @@ export const createFirstPlatformOwner = async ({
       user: owner,
     } as PayloadRequest
 
-    await createScopedLocalApi(ownerReq).create({
-      collection: 'memberships',
-      depth: 0,
-      data: {
-        joinedAt,
-        organization: organization.id,
-        role: 'org_owner',
-        status: 'active',
-        user: owner.id,
-      },
-    })
+    try {
+      await createScopedLocalApi(ownerReq).create({
+        collection: 'memberships',
+        depth: 0,
+        data: {
+          joinedAt,
+          organization: organization.id,
+          role: 'org_owner',
+          status: 'active',
+          user: owner.id,
+        },
+      })
+    } catch (error) {
+      await recordBootstrapOwnerEvent({
+        email,
+        reason:
+          error instanceof Error
+            ? `bootstrap membership sync skipped: ${error.message}`
+            : 'bootstrap membership sync skipped',
+        relatedId: owner.id,
+        req,
+        status: 'failed',
+        summary: 'Platform owner bootstrap membership sync skipped',
+      })
+    }
 
     await recordBootstrapOwnerEvent({
       email,
